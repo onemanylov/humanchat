@@ -1,0 +1,8 @@
+{
+  "name": "humanchat",
+  "main": "party/server.ts",
+  "serve": {
+    "port": 1999
+  },
+  "compatibilityDate": "2024-09-01"
+}

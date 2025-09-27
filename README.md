@@ -10,9 +10,14 @@ bun run dev:ngrok
 
 # Terminal B
 bun run dev
+
+# Terminal C
+bun run dev:party
 ```
 
 The app runs at `http://localhost:3000`. The public tunnel will be printed by the ngrok process.
+
+The PartyKit development server starts on port `1999` and should be kept running alongside the Next.js dev server.
 
 app entrypoint code is in `src/app/home.tsx`.
 
@@ -50,6 +55,17 @@ NEXT_PUBLIC_PUBLISHABLE_KEY="your-worldcoin-publishable-key"
 
 # Enable mock authentication for testing (optional)
 NEXT_PUBLIC_MOCK_AUTH="true"
+
+# Upstash Redis (required for chat persistence / rate limiting)
+UPSTASH_REDIS_REST_URL="https://<your-upstash-endpoint>"
+UPSTASH_REDIS_REST_TOKEN="<your-upstash-token>"
+
+# Optional chat tuning
+CHAT_RATE_LIMIT_MAX="5"
+CHAT_RATE_LIMIT_WINDOW_SECONDS="60"
+
+# PartyKit host exposed to the client when deploying
+NEXT_PUBLIC_PARTYKIT_HOST="your-partykit-host"
 ```
 
 #### Database Schema

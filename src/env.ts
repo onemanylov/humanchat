@@ -11,15 +11,26 @@ export const env = createEnv({
     JWT_SECRET: isProd
       ? z.string().min(1)
       : z.string().min(1).catch('dev-secret'),
+    UPSTASH_REDIS_REST_URL: z.string().min(1).catch(''),
+    UPSTASH_REDIS_REST_TOKEN: z.string().min(1).catch(''),
+    CHAT_RATE_LIMIT_MAX: z.string().optional(),
+    CHAT_RATE_LIMIT_WINDOW_SECONDS: z.string().optional(),
   },
   client: {
     NEXT_PUBLIC_PUBLISHABLE_KEY: z.string().optional(),
     NEXT_PUBLIC_MOCK_AUTH: z.string().optional(),
+    NEXT_PUBLIC_PARTYKIT_HOST: z.string().optional(),
   },
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     JWT_SECRET: process.env.JWT_SECRET,
     NEXT_PUBLIC_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_PUBLISHABLE_KEY,
     NEXT_PUBLIC_MOCK_AUTH: process.env.NEXT_PUBLIC_MOCK_AUTH,
+    UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
+    UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+    CHAT_RATE_LIMIT_MAX: process.env.CHAT_RATE_LIMIT_MAX,
+    CHAT_RATE_LIMIT_WINDOW_SECONDS:
+      process.env.CHAT_RATE_LIMIT_WINDOW_SECONDS,
+    NEXT_PUBLIC_PARTYKIT_HOST: process.env.NEXT_PUBLIC_PARTYKIT_HOST,
   },
 });

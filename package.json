@@ -5,6 +5,7 @@
   "scripts": {
     "dev:all": "bun run dev:ngrok & bun run dev",
     "dev": "next dev --turbopack",
+    "dev:party": "partykit dev",
     "dev:ngrok": "./scripts/dev-ngrok.sh",
     "build": "next build",
     "start": "next start",
@@ -39,6 +40,8 @@
     "lingui-ai": "^1.2.7",
     "lucide-react": "^0.542.0",
     "next": "15.4.6",
+    "partykit": "^0.0.115",
+    "partysocket": "^1.0.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "superjson": "^2.2.2",
