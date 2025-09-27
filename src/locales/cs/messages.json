@@ -1,0 +1,125 @@
+{
+  "DjbQ9K": {
+    "translation": "",
+    "message": "{messagesCount, plural, one {There's # message in your inbox} other {There are # messages in your inbox}}",
+    "placeholders": {
+      "messagesCount": [
+        "messagesCount"
+      ]
+    },
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home-client.tsx",
+        150
+      ]
+    ],
+    "obsolete": true
+  },
+  "gxLlwy": {
+    "translation": "",
+    "message": "Deploy now",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home-client.tsx",
+        89
+      ]
+    ],
+    "obsolete": true
+  },
+  "hFthoo": {
+    "translation": "",
+    "message": "Examples",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home-client.tsx",
+        132
+      ]
+    ],
+    "obsolete": true
+  },
+  "QeKRmi": {
+    "message": "Get started by editing",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home.tsx",
+        23
+      ]
+    ],
+    "translation": "Začněte úpravou"
+  },
+  "3vYXCO": {
+    "translation": "",
+    "message": "Go to nextjs.org →",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home-client.tsx",
+        147
+      ]
+    ],
+    "obsolete": true
+  },
+  "ItXLVU": {
+    "translation": "",
+    "message": "Last login on {0}.",
+    "placeholders": {
+      "0": [
+        "i18n.date(lastLogin)"
+      ]
+    },
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home-client.tsx",
+        157
+      ]
+    ],
+    "obsolete": true
+  },
+  "rjZpLn": {
+    "translation": "",
+    "message": "Learn",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home-client.tsx",
+        117
+      ]
+    ],
+    "obsolete": true
+  },
+  "GmDB+B": {
+    "translation": "",
+    "message": "Read our docs",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home-client.tsx",
+        97
+      ]
+    ],
+    "obsolete": true
+  },
+  "pUIY8G": {
+    "message": "Save and see your changes instantly.",
+    "placeholders": {},
+    "comments": [],
+    "origin": [
+      [
+        "src/app/home.tsx",
+        30
+      ]
+    ],
+    "translation": "Uložte a ihned uvidíte své změny."
+  }
+}
