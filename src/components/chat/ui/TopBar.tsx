@@ -25,14 +25,17 @@ const mockUsers = [
   {
     wallet: '0x1234567890123456789012345678901234567890',
     username: 'jenny30',
+    profilePictureUrl: null,
   },
   {
     wallet: '0x2345678901234567890123456789012345678901',
     username: 'atom',
+    profilePictureUrl: null,
   },
   {
     wallet: '0x3456789012345678901234567890123456789012',
     username: 'natab.3203',
+    profilePictureUrl: null,
   },
 ];
 
