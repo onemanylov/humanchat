@@ -1,5 +1,5 @@
 import type * as Party from 'partykit/server';
-import { verifyJwtToken, type TokenPayload } from './auth';
+import { verifyJwtToken, tokenFromRequest, type TokenPayload } from './auth';
 import { insertMessage, deleteMessage } from './storage';
 import { checkRateLimit } from './utils/rateLimit';
 import { redisPersistError } from './utils/redis';
@@ -12,12 +12,71 @@ import { UserViolationService } from '~/lib/moderation/UserViolationService';
 import { BanService } from '~/lib/moderation/BanService';
 import { VIOLATION_MESSAGES } from '~/lib/moderation/config';
 
+type ConnectionState = {
+  isService: boolean;
+  wallet: string | null;
+  username: string | null;
+};
+
 export default class ChatServer implements Party.Server {
   readonly options: Party.ServerOptions = {
     hibernate: true,
   };
 
+  private connections = new Map<string, ConnectionState>();
+
   constructor(readonly room: Party.Room) {}
+
+  static async onBeforeConnect(request: Party.Request, lobby: Party.Lobby) {
+    try {
+      const url = new URL(request.url);
+
+      // 1) Privileged service path
+      const serviceSecret = url.searchParams.get("service_secret");
+      if (serviceSecret) {
+        const expected = lobby.env.WEBSOCKET_SECRET as string | undefined;
+        if (!expected || serviceSecret !== expected) {
+          return new Response("Unauthorized: invalid service_secret", { status: 401 });
+        }
+        request.headers.set("X-Service", "true");
+        return request;
+      }
+
+      // 2) Regular users via token query param (?token=JWT) or cookie
+      const token = url.searchParams.get("token") ?? tokenFromRequest(request);
+      if (!token) return new Response("Unauthorized: missing token", { status: 401 });
+
+      const secret = lobby.env.JWT_SECRET as string | undefined;
+      if (!secret) return new Response("Server configuration error", { status: 401 });
+
+      const { payload } = await verifyJwtToken(token, secret);
+      if (!payload?.wallet) return new Response("Unauthorized: invalid payload", { status: 401 });
+
+      // Store identity in request headers
+      if (payload.username) request.headers.set("X-Username", String(payload.username));
+      request.headers.set("X-Wallet", String(payload.wallet));
+      return request;
+    } catch (err) {
+      console.error("[onBeforeConnect] verify error", err);
+      return new Response("Unauthorized: verify error", { status: 401 });
+    }
+  }
+
+  onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+    const isService = ctx.request.headers.get("X-Service") === "true";
+    const wallet = ctx.request.headers.get("X-Wallet");
+    const username = ctx.request.headers.get("X-Username");
+
+    this.connections.set(conn.id, {
+      isService,
+      wallet: wallet || null,
+      username: username || null,
+    });
+  }
+
+  onClose(conn: Party.Connection) {
+    this.connections.delete(conn.id);
+  }
 
   private getModerationService(): ModerationService | null {
     const apiKey = this.room.env.OPENAI_API_KEY as string | undefined;
@@ -36,8 +95,8 @@ export default class ChatServer implements Party.Server {
     const parsed = JSON.parse(message);
     const valid =
       parsed?.type === 'chat:message' &&
-      typeof parsed.text === 'string' &&
-      typeof parsed.token === 'string';
+      typeof parsed.text === 'string';
+      // Note: token is now optional (for backward compatibility during migration)
 
     return { parsed, valid };
   }
@@ -47,7 +106,12 @@ export default class ChatServer implements Party.Server {
       const { parsed, valid } = this.parseMessage(message);
       if (!valid) return;
 
-      await this.handleChatMessage(parsed, sender);
+      const connection = this.connections.get(sender.id);
+      if (!connection) {
+        console.warn(`No connection state found for ${sender.id}`);
+        return;
+      }
+      await this.handleChatMessage(parsed, sender, connection);
     } catch (err) {
       await redisPersistError(
         this.envSource,
@@ -57,63 +121,34 @@ export default class ChatServer implements Party.Server {
     }
   }
 
-  private async handleChatMessage(parsed: any, sender: Party.Connection) {
-    // Verify JWT token
-    const secret = this.room.env.JWT_SECRET as string | undefined;
-    if (!secret) {
+  private async handleChatMessage(parsed: any, sender: Party.Connection, connection: ConnectionState) {
+    // 1) Identity comes from connection (stateful). NO per-message token anymore.
+    const effectiveWallet = (connection.wallet || "").toLowerCase();
+
+    // If client still sends token in messages, return protocol error
+    if (typeof parsed.token === "string") {
       try {
         sender.send(
           JSON.stringify({
-            type: 'error:auth',
-            message: 'Server configuration error',
+            type: 'error:protocol',
+            message: 'Per-message tokens are no longer supported'
           }),
         );
       } catch (err) {
         await redisPersistError(
           this.envSource,
-          'handleChatMessage: Error sending server config error',
+          'handleChatMessage: Error sending protocol error',
           err,
         );
       }
       return;
     }
 
-    let tokenPayload: TokenPayload;
-    try {
-      const { payload } = await verifyJwtToken<TokenPayload>(
-        parsed.token,
-        secret,
-      );
-      tokenPayload = payload;
-    } catch (err) {
-      await redisPersistError(
-        this.envSource,
-        'handleChatMessage: JWT verification error',
-        err,
-      );
-      try {
-        sender.send(
-          JSON.stringify({
-            type: 'error:auth',
-            message: 'Invalid or expired token',
-          }),
-        );
-      } catch (sendErr) {
-        await redisPersistError(
-          this.envSource,
-          'handleChatMessage: Error sending JWT error',
-          sendErr,
-        );
-      }
-      return;
-    }
-
-    // Check if user is banned before processing
-    const wallet = tokenPayload.wallet;
-    if (wallet) {
+    // 2) Ban check (requires wallet)
+    if (effectiveWallet) {
       try {
         const banService = new BanService(this.envSource);
-        const banStatus = await banService.getBanStatus(wallet);
+        const banStatus = await banService.getBanStatus(effectiveWallet);
 
         if (banStatus.isBanned) {
           const message = banStatus.isTemporary
@@ -153,6 +188,7 @@ export default class ChatServer implements Party.Server {
       }
     }
 
+    // 3) Validation
     const text = String(parsed.text).trim().slice(0, CHAT_MESSAGE_MAX_LENGTH);
     if (!text) return;
 
@@ -175,8 +211,8 @@ export default class ChatServer implements Party.Server {
       return;
     }
 
-    // Rate limiting
-    const key = tokenPayload.wallet ?? `conn:${sender.id}`;
+    // 4) Rate limit: prefer wallet, fallback to conn id
+    const key = effectiveWallet || `conn:${sender.id}`;
     try {
       const result = await checkRateLimit(this.room.env, key);
       if (result && !result.success) {
@@ -207,12 +243,13 @@ export default class ChatServer implements Party.Server {
       );
     }
 
+    // 5) Persist/broadcast
     const chatMessage: ChatMessage = {
       id: crypto.randomUUID(),
       clientId: parsed.clientId ?? undefined,
       text,
-      wallet: tokenPayload.wallet || null,
-      username: tokenPayload.username || null,
+      wallet: effectiveWallet || null,
+      username: connection.username ?? (parsed.username ?? null),
       profilePictureUrl: parsed.profilePictureUrl || null,
       ts: Date.now(),
     };

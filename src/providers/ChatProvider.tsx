@@ -369,8 +369,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         // Update user activity when sending a message
         updateActivityMutation.mutate();
 
-        // Create message payload with token
-        const payload = createChatMessagePayload(validatedText, user, token);
+        // Create message payload (token now handled at connection level)
+        const payload = createChatMessagePayload(validatedText, user);
 
         // Add optimistic message
         const optimisticMessage = createOptimisticMessage(payload);
