@@ -57,7 +57,7 @@ export function ChatInput({
   }
 
   return (
-    <div className="flex items-end gap-3">
+    <div className="bg-transparent p-2">
       <textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}
@@ -68,24 +68,11 @@ export function ChatInput({
         disabled={disabled || isRateLimited || isSending}
         rows={1}
         className={cn(
-          'bg-muted text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/40 h-12 flex-1 resize-none rounded-xl border border-transparent px-4 py-3 text-sm focus:ring-2 focus:outline-none',
+          'bg-muted text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/40 h-full w-full flex-1 resize-none rounded-xl border border-transparent px-4 py-3 text-sm focus:ring-2 focus:outline-none',
           'scrollbar-thin',
           (disabled || isRateLimited) && 'cursor-not-allowed opacity-60',
         )}
       />
-      <button
-        onClick={sendMessage}
-        disabled={!canSend || isSending}
-        className={cn(
-          'rounded-full px-5 py-2 text-sm font-medium transition-colors',
-          canSend
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-            : 'bg-muted text-muted-foreground',
-          isSending && 'opacity-70',
-        )}
-      >
-        Send
-      </button>
     </div>
   );
 }

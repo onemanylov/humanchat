@@ -3,10 +3,12 @@
 import Image from 'next/image';
 import type { ChatMessage } from '~/lib/chat/types';
 import { cn } from '~/lib/utils';
+import MeshAvatar from './MeshAvatar';
 
 export type ChatMessageRowProps = {
   message: ChatMessage;
   isOwn: boolean;
+  previousMessage?: ChatMessage | null;
 };
 
 const timeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -34,11 +36,7 @@ function formatDisplayName(message: ChatMessage) {
 }
 
 function renderAvatar(message: ChatMessage, isOwn: boolean) {
-  const fallback = formatDisplayName(message).slice(0, 1).toUpperCase();
-  const className = cn(
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground shadow-inner',
-    isOwn && 'order-2 bg-primary text-primary-foreground',
-  );
+  const seed = message.wallet || 'anonymous';
 
   if (message.profilePictureUrl) {
     return (
@@ -47,47 +45,66 @@ function renderAvatar(message: ChatMessage, isOwn: boolean) {
         alt={formatDisplayName(message)}
         width={36}
         height={36}
-        className={cn('h-9 w-9 shrink-0 rounded-full object-cover', isOwn && 'order-2')}
+        className={cn(
+          'h-9 w-9 shrink-0 rounded-full object-cover',
+          isOwn && 'order-2',
+        )}
         unoptimized
       />
     );
   }
 
-  return <div className={className}>{fallback || '?'}</div>;
+  return (
+    <MeshAvatar
+      seed={seed}
+      size={36}
+      className={cn('h-9 w-9', isOwn && 'order-2')}
+    />
+  );
 }
 
-export function ChatMessageRow({ message, isOwn }: ChatMessageRowProps) {
+export function ChatMessageRow({
+  message,
+  isOwn,
+  previousMessage,
+}: ChatMessageRowProps) {
   const timestamp = formatTimestamp(message.ts);
+  const isNewBlock =
+    !previousMessage || previousMessage.wallet !== message.wallet;
 
   return (
     <div
       className={cn(
-        'flex w-full items-end gap-3',
-        isOwn ? 'justify-end text-right' : 'justify-start text-left',
+        'flex w-full items-start gap-3',
+        isOwn ? 'justify-end' : 'justify-start',
       )}
     >
       {!isOwn && renderAvatar(message, isOwn)}
-      <div className="max-w-[70%] space-y-1">
+      <div
+        className={cn(
+          'max-w-[80%] rounded-[18px] px-3 py-2 text-sm',
+          isOwn
+            ? 'bg-[#007AFF] text-white'
+            : 'bg-black/7.5 text-black backdrop-blur-sm',
+          !isNewBlock && !isOwn && 'rounded-tl-md',
+          !isNewBlock && isOwn && 'rounded-tr-md',
+        )}
+      >
+        {!isOwn && (
+          <div className="text-[11px] font-medium opacity-70">
+            {formatDisplayName(message)}
+          </div>
+        )}
+        <div className="break-words">{message.text}</div>
         <div
           className={cn(
-            'flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground',
-            isOwn && 'flex-row-reverse',
+            'mt-1 text-right text-[10px] uppercase',
+            isOwn ? 'text-white/70' : 'text-black/50',
           )}
         >
-          <span>{formatDisplayName(message)}</span>
-          <span className={cn('text-muted-foreground', message.pending && 'opacity-70')}>{timestamp}</span>
-        </div>
-        <div
-          className={cn(
-            'rounded-2xl bg-muted px-4 py-2 text-sm text-foreground shadow-sm transition-opacity',
-            isOwn && 'bg-primary text-primary-foreground',
-            message.pending && 'opacity-70',
-          )}
-        >
-          {message.text}
+          {timestamp}
         </div>
       </div>
-      {isOwn && renderAvatar(message, isOwn)}
     </div>
   );
 }

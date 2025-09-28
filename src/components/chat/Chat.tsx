@@ -20,8 +20,8 @@ export default function Chat() {
   const currentUser = meQuery.data?.user ?? null;
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden pb-24">
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+    <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         {connection.isInitialLoading ? (
           <div className="text-muted-foreground flex h-full w-full items-center justify-center text-sm">
             Loading messages…
@@ -35,15 +35,7 @@ export default function Chat() {
             currentWallet={currentUser?.wallet ?? null}
           />
         )}
-      </div>
 
-      {rateLimit && (
-        <div className="absolute bottom-20 left-1/2 mx-auto mb-2 -translate-x-1/2 rounded-full border border-amber-500/30 bg-amber-50 px-4 py-1 text-xs whitespace-nowrap text-amber-700 shadow-sm">
-          {rateLimit.message} Try again in {remainingSeconds}s.
-        </div>
-      )}
-
-      <div className="border-border bg-background/95 fixed right-0 bottom-0 left-0 border-t p-4 backdrop-blur">
         <ChatInput
           socket={connection.socket}
           currentUser={currentUser}
@@ -52,6 +44,12 @@ export default function Chat() {
           onSendOptimistic={connection.addMessage}
         />
       </div>
+
+      {rateLimit && (
+        <div className="absolute bottom-20 left-1/2 mx-auto mb-2 -translate-x-1/2 rounded-full border border-amber-500/30 bg-amber-50 px-4 py-1 text-xs whitespace-nowrap text-amber-700 shadow-sm">
+          {rateLimit.message} Try again in {remainingSeconds}s.
+        </div>
+      )}
     </div>
   );
 }
