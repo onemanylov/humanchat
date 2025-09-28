@@ -69,7 +69,7 @@ export function ChatMessageRow({
         )}
       >
         {!isOwn && (
-          <div className="text-[11px] font-medium opacity-70">
+          <div className="text-[11px] font-medium opacity-50">
             {formatDisplayName(message)}
           </div>
         )}

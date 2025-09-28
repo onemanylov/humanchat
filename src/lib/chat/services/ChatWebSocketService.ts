@@ -41,7 +41,6 @@ export class ChatWebSocketService {
         this.socket = new PartySocket({
           host: resolvePartyHost(),
           room: GLOBAL_CHAT_ROOM_ID,
-          query: { token },
         });
 
         this.socket.addEventListener('open', () => {

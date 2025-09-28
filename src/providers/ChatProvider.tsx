@@ -193,8 +193,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Send message function
   const sendMessage = useCallback(async (text: string): Promise<boolean> => {
     const user = userQuery.data?.user;
+    const token = tokenQuery.data?.token;
     
-    if (!user || !webSocketService.current || !messageService.current) {
+    if (!user || !token || !webSocketService.current || !messageService.current) {
       return false;
     }
 
@@ -215,8 +216,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsSending(true);
 
-      // Create message payload
-      const payload = createChatMessagePayload(validatedText, user);
+      // Create message payload with token
+      const payload = createChatMessagePayload(validatedText, user, token);
       
       // Add optimistic message
       const optimisticMessage = createOptimisticMessage(payload);
@@ -238,7 +239,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsSending(false);
     }
-  }, [userQuery.data?.user, rateLimit, isSending]);
+  }, [userQuery.data?.user, tokenQuery.data?.token, rateLimit, isSending]);
 
   // tRPC mutation for loading more messages
   const loadMoreMutation = trpc.chat.loadMore.useMutation();

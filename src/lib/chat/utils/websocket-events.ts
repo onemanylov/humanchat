@@ -5,6 +5,7 @@ export type WebSocketMessageType = 'chat:message';
 export type OutgoingWebSocketEvent = {
   type: WebSocketMessageType;
   text: string;
+  token: string;
   wallet: string;
   username: string | null;
   profilePictureUrl: string | null;
@@ -14,12 +15,14 @@ export type OutgoingWebSocketEvent = {
 export type IncomingWebSocketEvent =
   | { type: 'chat:new'; message: ChatMessage }
   | { type: 'error:rateLimit'; message: string; retryAt: number; limit: number; remaining: number }
-  | { type: 'error:validation'; message: string; reason?: string };
+  | { type: 'error:validation'; message: string; reason?: string }
+  | { type: 'error:auth'; message: string };
 
 /**
  * Creates a WebSocket message payload for sending a chat message
  * @param text Message text
  * @param user Current user information
+ * @param token JWT authentication token
  * @returns WebSocket message payload
  */
 export function createChatMessagePayload(
@@ -29,6 +32,7 @@ export function createChatMessagePayload(
     username: string | null;
     profilePictureUrl: string | null;
   },
+  token: string,
 ): OutgoingWebSocketEvent {
   const clientId =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -38,6 +42,7 @@ export function createChatMessagePayload(
   return {
     type: 'chat:message',
     text: text.trim(),
+    token,
     wallet: user.wallet,
     username: user.username,
     profilePictureUrl: user.profilePictureUrl,
