@@ -1,6 +1,6 @@
-import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { text, pgTable } from 'drizzle-orm/pg-core';
 
-export const users = sqliteTable('users', {
+export const users = pgTable('users', {
   wallet: text('wallet').primaryKey(),
   username: text('username'),
   profilePictureUrl: text('profile_picture_url'),

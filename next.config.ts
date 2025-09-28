@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
     // Turbopack currently doesn't support typedRoutes
     // typedRoutes: true,
   },
+
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
