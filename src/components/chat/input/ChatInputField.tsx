@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, forwardRef } from 'react';
 import { cn } from '~/lib/utils';
 import { ChatSendButton } from './ChatSendButton';
 
@@ -8,29 +8,30 @@ export type ChatInputFieldProps = {
   value: string;
   onChange: (value: string) => void;
   onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement>;
-  onSend?: (event?: React.MouseEvent) => void;
+  onSend?: (event: React.MouseEvent) => void;
+  onPointerDown?: (event: React.PointerEvent) => void;
   placeholder?: string;
-  disabled?: boolean;
   isRateLimited?: boolean;
   isSending?: boolean;
   canSend?: boolean;
   className?: string;
 };
 
-export function ChatInputField({
+export const ChatInputField = forwardRef<HTMLTextAreaElement, ChatInputFieldProps>(({
   value,
   onChange,
   onKeyDown,
   onSend,
+  onPointerDown,
   placeholder,
-  disabled = false,
   isRateLimited = false,
   isSending = false,
   canSend = false,
   className,
-}: ChatInputFieldProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isDisabled = disabled || isRateLimited || isSending;
+}, ref) => {
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
+  const isDisabled = isRateLimited;
 
   const effectivePlaceholder = isRateLimited
     ? 'Rate limit reached…'
@@ -70,18 +71,7 @@ export function ChatInputField({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Maintain focus to keep keyboard open (especially on iOS)
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea && value === '' && document.activeElement === textarea) {
-      // Re-focus the textarea after a brief delay to ensure keyboard stays open
-      // This is particularly important on iOS where clearing input can dismiss the keyboard
-      const timeoutId = setTimeout(() => {
-        textarea.focus();
-      }, 10);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [value]);
+  // Remove the old focus management - now handled by parent component
 
   return (
     <div className="relative flex items-end">
@@ -91,29 +81,33 @@ export function ChatInputField({
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={onKeyDown}
         placeholder={effectivePlaceholder}
-        disabled={isDisabled}
         rows={1}
+        inputMode="text"
+        autoCapitalize="sentences"
+        autoCorrect="on"
+        enterKeyHint="send"
         autoFocus={!isDisabled}
         style={{
-          minHeight: '44px', // Ensure minimum height for consistency
+          minHeight: '44px',
           lineHeight: '1.5',
         }}
         className={cn(
           'bg-muted text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring/40 w-full flex-1 resize-none rounded-xl border border-transparent px-4 py-3 pr-12 text-sm focus:ring-2 focus:outline-none',
           'scrollbar-thin',
-          isDisabled && 'cursor-not-allowed opacity-60',
+          isRateLimited && 'cursor-not-allowed opacity-60',
           className,
         )}
       />
-      {onSend && (
+      {onSend && onPointerDown && (
         <div className="absolute right-2 bottom-1.5">
           <ChatSendButton 
-            onClick={(event) => onSend(event)} 
-            disabled={!canSend || isDisabled}
+            onClick={onSend} 
+            onPointerDown={onPointerDown}
+            isDisabled={!canSend || isDisabled || isSending}
             hasContent={value.trim().length > 0}
           />
         </div>
       )}
     </div>
   );
-}
+});

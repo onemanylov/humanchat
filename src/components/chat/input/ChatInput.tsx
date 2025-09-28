@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useChat } from '~/providers/ChatProvider';
 import { ChatInputContainer } from './ChatInputContainer';
 import { ChatInputField } from './ChatInputField';
@@ -24,6 +24,7 @@ export function ChatInput({ className, onValidationChange }: ChatInputProps) {
     banStatus 
   } = useChat();
   const [inputValue, setInputValue] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const validation = useMemo(() => {
     const trimmedValue = inputValue.trim();
@@ -47,26 +48,49 @@ export function ChatInput({ className, onValidationChange }: ChatInputProps) {
     });
   }, [validation.showLengthError, validation.errorMessage, onValidationChange]);
 
-  const handleSend = async (event?: React.MouseEvent | React.KeyboardEvent) => {
+  // iOS Safari keyboard fix: refocus textarea in same gesture/frame to keep keyboard open
+  const focusTextareaSoon = useCallback(() => {
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+      // Move cursor to end after clearing
+      const el = textareaRef.current;
+      if (el) el.setSelectionRange(el.value.length, el.value.length);
+    });
+  }, []);
+
+  const handleSend = useCallback(async () => {
     if (!validation.canSend) return;
     
-    // Prevent default behavior to keep keyboard open on iOS Safari
-    if (event) {
-      event.preventDefault();
+    try {
+      const success = await sendMessage(inputValue.trim());
+      if (success) {
+        setInputValue(''); // clearing the value is safe if we keep focus
+        focusTextareaSoon();
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
     }
-    
-    const success = await sendMessage(inputValue.trim());
-    if (success) {
-      setInputValue('');
-    }
-  };
+  }, [inputValue, validation.canSend, sendMessage, focusTextareaSoon]);
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = async (event) => {
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = useCallback((event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      await handleSend(event);
+      event.preventDefault(); // critical on iOS
+      handleSend();
+      focusTextareaSoon();
     }
-  };
+  }, [handleSend, focusTextareaSoon]);
+
+  // Handle pointer down to prevent focus transfer on iOS Safari
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault(); // keep focus on textarea
+  }, []);
+
+  // Handle button click
+  const handleButtonClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault(); // belt & suspenders on iOS
+    handleSend();
+    focusTextareaSoon();
+  }, [handleSend, focusTextareaSoon]);
 
   if (!currentUser) {
     return <ChatInputSignInPrompt className={className} />;
@@ -95,11 +119,12 @@ export function ChatInput({ className, onValidationChange }: ChatInputProps) {
       )}
       
       <ChatInputField
+        ref={textareaRef}
         value={inputValue}
         onChange={setInputValue}
         onKeyDown={handleKeyDown}
-        onSend={handleSend}
-        disabled={isSending}
+        onSend={handleButtonClick}
+        onPointerDown={handlePointerDown}
         isRateLimited={!!rateLimit}
         isSending={isSending}
         canSend={validation.canSend}
