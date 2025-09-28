@@ -146,6 +146,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [messageRevision, setMessageRevision] = useState(0);
+
+  const bumpMessageRevision = useCallback(() => {
+    setMessageRevision((prev) => prev + 1);
+  }, []);
 
   // Track user activity on page load and when user data is available
   useEffect(() => {
@@ -223,11 +228,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         case 'chat:new':
           if (event.message && messageService.current) {
             messageService.current.addMessage(event.message);
+            bumpMessageRevision();
           }
           break;
         case 'chat:message:deleted':
           if (messageService.current) {
             messageService.current.removeMessage(event.messageId);
+            bumpMessageRevision();
           }
           break;
         case 'chat:user:warned':
@@ -272,7 +279,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           break;
       }
     },
-    [userQuery.data?.user],
+    [bumpMessageRevision, userQuery.data?.user],
   );
 
   // Manage WebSocket connection
@@ -375,6 +382,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         // Add optimistic message
         const optimisticMessage = createOptimisticMessage(payload);
         messageService.current.addMessage(optimisticMessage);
+        bumpMessageRevision();
 
         // Send via WebSocket
         const success = webSocketService.current.sendMessage(payload);
@@ -382,6 +390,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (!success) {
           // Remove optimistic message on failure
           messageService.current.removeMessage(payload.clientId);
+          bumpMessageRevision();
           return false;
         }
 
@@ -399,6 +408,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       rateLimit,
       isSending,
       updateActivityMutation,
+      bumpMessageRevision,
     ],
   );
 
@@ -413,19 +423,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const result = await messageService.current.loadOlderMessages((params) =>
         utils.chat.loadMore.fetch(params),
       );
+      if (result.success) {
+        bumpMessageRevision();
+      }
       return result.success;
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, utils.chat.loadMore]);
+  }, [bumpMessageRevision, isLoadingMore, utils.chat.loadMore]);
 
   // Get current messages
-  const messages = messageService.current?.getSortedMessages() ?? [];
-  const messagesData = messageService.current?.getCurrentData() ?? {
-    messages: [],
-    hasMore: false,
-    oldestTimestamp: undefined,
-  };
+  const messages = React.useMemo(() => {
+    return messageService.current?.getSortedMessages() ?? [];
+  }, [messageRevision]);
+
+  const messagesData = React.useMemo(() => {
+    return (
+      messageService.current?.getCurrentData() ?? {
+        messages: [],
+        hasMore: false,
+        oldestTimestamp: undefined,
+      }
+    );
+  }, [messageRevision]);
 
   const contextValue: ChatContextType = {
     // Messages
