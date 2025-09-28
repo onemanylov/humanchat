@@ -11,6 +11,7 @@ export function useChatAutoScroll<T extends HTMLElement>() {
   const lastScrollTopRef = useRef(0);
 
   const markLoadingMore = useCallback(() => {
+    console.log('🔄 markLoadingMore called - setting wasLoadingMoreRef to true');
     wasLoadingMoreRef.current = true;
   }, []);
 
@@ -23,10 +24,15 @@ export function useChatAutoScroll<T extends HTMLElement>() {
       const distance = Math.max(0, scrollHeight - (scrollTop + clientHeight));
       setScrollDistance(distance);
       const atBottom = distance < 80;
+      const wasAtBottom = isAtBottom;
       setIsAtBottom(atBottom);
       if (atBottom) setShowScrollToLatest(false);
       lastScrollTopRef.current = scrollTop;
       setPillVisible(scrollTop > 24);
+      
+      if (wasAtBottom !== atBottom) {
+        console.log('📍 isAtBottom changed:', { from: wasAtBottom, to: atBottom, distance, scrollTop, scrollHeight, clientHeight });
+      }
     };
 
     element.addEventListener('scroll', handleScroll);
@@ -41,16 +47,45 @@ export function useChatAutoScroll<T extends HTMLElement>() {
 
       const hasNew = numItems > lastCountRef.current;
       const initial = lastCountRef.current === 0;
+      const previousCount = lastCountRef.current;
       lastCountRef.current = numItems;
+
+      console.log('📝 onItemsChange #' + (numItems - previousCount) + ':', { 
+        numItems, 
+        previousCount, 
+        hasNew, 
+        initial, 
+        wasLoadingMore: wasLoadingMoreRef.current, 
+        isAtBottom,
+        callNumber: lastCountRef.current === 0 ? 1 : (numItems > previousCount ? Math.floor(Math.random() * 1000) : 0)
+      });
 
       if (!hasNew) return;
 
       if (wasLoadingMoreRef.current) {
+        console.log('Loading more - preserving scroll position');
+        // Store current scroll position when loading more messages
+        const currentScrollTop = element.scrollTop;
+        const currentScrollHeight = element.scrollHeight;
+        
+        // Wait for DOM update then restore scroll position
+        requestAnimationFrame(() => {
+          const newScrollHeight = element.scrollHeight;
+          const heightDifference = newScrollHeight - currentScrollHeight;
+          console.log('Restoring scroll:', { currentScrollTop, heightDifference, newTop: currentScrollTop + heightDifference });
+          element.scrollTo({
+            top: currentScrollTop + heightDifference,
+            behavior: 'auto',
+          });
+        });
+        
         wasLoadingMoreRef.current = false;
+        console.log('✅ Load more scroll position restored - exiting early');
         return;
       }
 
       if (initial || isAtBottom) {
+        console.log('Auto-scrolling to bottom because:', { initial, isAtBottom });
         requestAnimationFrame(() => {
           element.scrollTo({
             top: element.scrollHeight,
@@ -59,6 +94,7 @@ export function useChatAutoScroll<T extends HTMLElement>() {
         });
         setShowScrollToLatest(false);
       } else {
+        console.log('Not scrolling - user is not at bottom');
         setShowScrollToLatest(true);
       }
     },

@@ -11,10 +11,6 @@ export type ChatUIState = {
   scrollDistance: number;
   scrollToBottom: () => void;
   
-  // Loading states
-  pillVisible: boolean;
-  scrollPillLabel: string | null;
-  
   // Actions
   onItemsChange: (count: number) => void;
   markLoadingMore: () => void;
@@ -24,9 +20,9 @@ export function useChatUI<T extends HTMLElement = HTMLDivElement>(): ChatUIState
   const listRef = useRef<T>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [scrollDistance, setScrollDistance] = useState(0);
-  const [pillVisible, setPillVisible] = useState(false);
-  const [scrollPillLabel, setScrollPillLabel] = useState<string | null>(null);
-  const [, setIsLoadingMore] = useState(false);
+  const wasLoadingMoreRef = useRef(false);
+  const scrollPositionRef = useRef<{ scrollTop: number; scrollHeight: number } | null>(null);
+  const hasInitiallyScrolledRef = useRef(false);
 
   // Create scroll tracker
   const scrollTrackerRef = useRef(
@@ -54,26 +50,66 @@ export function useChatUI<T extends HTMLElement = HTMLDivElement>(): ChatUIState
     const element = listRef.current;
     if (!element) return;
 
+    // Handle scroll position restoration after loading more messages
+    if (wasLoadingMoreRef.current && scrollPositionRef.current) {
+      console.log('📍 Restoring scroll position after load more');
+      const { scrollTop: previousScrollTop, scrollHeight: previousScrollHeight } = scrollPositionRef.current;
+      
+      // Wait for DOM to update then restore position
+      requestAnimationFrame(() => {
+        const newScrollHeight = element.scrollHeight;
+        const heightDifference = newScrollHeight - previousScrollHeight;
+        const newScrollTop = previousScrollTop + heightDifference;
+        
+        console.log('Restoring scroll:', { 
+          previousScrollTop, 
+          previousScrollHeight, 
+          newScrollHeight, 
+          heightDifference, 
+          newScrollTop 
+        });
+        
+        element.scrollTo({
+          top: newScrollTop,
+          behavior: 'auto', // Instant, no animation
+        });
+      });
+      
+      // Clear refs after restoration
+      wasLoadingMoreRef.current = false;
+      scrollPositionRef.current = null;
+      return;
+    }
+
     // Auto-scroll if user is at bottom
     if (isAtBottom && !scrollTrackerRef.current.getUserScrolledUp()) {
+      const isInitialScroll = !hasInitiallyScrolledRef.current;
+      const behavior = isInitialScroll ? 'auto' : 'smooth';
+      
+      console.log('⬇️ Auto-scrolling to bottom via useChatUI', { isInitialScroll, behavior });
+      
       setTimeout(() => {
-        scrollToBottom(element, 'smooth');
+        scrollToBottom(element, behavior);
+        hasInitiallyScrolledRef.current = true;
       }, 50);
     }
   }, [isAtBottom]);
 
   // Handle loading states
   const markLoadingMore = useCallback(() => {
-    setIsLoadingMore(true);
-    setPillVisible(true);
-    setScrollPillLabel('Loading more messages...');
+    console.log('🔄 markLoadingMore called in useChatUI');
+    const element = listRef.current;
     
-    // Clear loading state after a delay
-    setTimeout(() => {
-      setIsLoadingMore(false);
-      setPillVisible(false);
-      setScrollPillLabel(null);
-    }, 2000);
+    if (element) {
+      // Capture current scroll position before loading more
+      scrollPositionRef.current = {
+        scrollTop: element.scrollTop,
+        scrollHeight: element.scrollHeight,
+      };
+      console.log('💾 Captured scroll position:', scrollPositionRef.current);
+    }
+    
+    wasLoadingMoreRef.current = true;
   }, []);
 
   // Scroll to bottom function
@@ -90,8 +126,6 @@ export function useChatUI<T extends HTMLElement = HTMLDivElement>(): ChatUIState
     isAtBottom,
     scrollDistance,
     scrollToBottom: handleScrollToBottom,
-    pillVisible,
-    scrollPillLabel,
     onItemsChange,
     markLoadingMore,
   };

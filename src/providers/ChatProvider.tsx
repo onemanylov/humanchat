@@ -241,9 +241,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userQuery.data?.user, tokenQuery.data?.token, rateLimit, isSending]);
 
-  // tRPC mutation for loading more messages
-  const loadMoreMutation = trpc.chat.loadMore.useMutation();
-
   // Load older messages function
   const loadOlderMessages = useCallback(async (): Promise<boolean> => {
     if (!messageService.current || isLoadingMore) {
@@ -253,13 +250,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingMore(true);
     try {
       const result = await messageService.current.loadOlderMessages(
-        loadMoreMutation.mutateAsync
+        (params) => utils.chat.loadMore.fetch(params)
       );
       return result.success;
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, loadMoreMutation.mutateAsync]);
+  }, [isLoadingMore, utils.chat.loadMore]);
 
   // Get current messages
   const messages = messageService.current?.getSortedMessages() ?? [];

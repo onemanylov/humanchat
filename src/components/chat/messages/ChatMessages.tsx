@@ -27,8 +27,6 @@ export function ChatMessages({ className }: ChatMessagesProps) {
     scrollToBottom,
     onItemsChange,
     markLoadingMore,
-    pillVisible,
-    scrollPillLabel,
     isAtBottom,
     scrollDistance,
   } = useChatUI<HTMLDivElement>();
@@ -51,14 +49,6 @@ export function ChatMessages({ className }: ChatMessagesProps) {
 
   return (
     <div className={`relative flex h-full w-full flex-col overflow-hidden px-2 ${className || ''}`}>
-      {/* Loading pill */}
-      <div className="pointer-events-none fixed top-14 left-1/2 z-10 flex -translate-x-1/2 justify-center">
-        {pillVisible && scrollPillLabel && (
-          <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] whitespace-nowrap text-white/80 backdrop-blur">
-            {scrollPillLabel}
-          </div>
-        )}
-      </div>
 
       {/* Messages container */}
       <div

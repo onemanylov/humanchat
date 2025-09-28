@@ -20,7 +20,8 @@ export function ChatMessage({
   previousMessage,
   className,
 }: ChatMessageProps) {
-  const isNewBlock = !previousMessage || previousMessage.wallet !== message.wallet;
+  const isNewBlock =
+    !previousMessage || previousMessage.wallet !== message.wallet;
 
   return (
     <div
@@ -31,13 +32,9 @@ export function ChatMessage({
       )}
     >
       {!isOwn && (
-        <ChatMessageAvatar 
-          message={message} 
-          isOwn={isOwn}
-          size={36}
-        />
+        <ChatMessageAvatar message={message} isOwn={isOwn} size={36} />
       )}
-      
+
       <div
         className={cn(
           'max-w-[80%] rounded-[18px] px-3 py-2 text-sm',
@@ -48,19 +45,11 @@ export function ChatMessage({
           !isNewBlock && isOwn && 'rounded-tr-md',
         )}
       >
-        {!isOwn && (
-          <ChatMessageAuthor message={message} />
-        )}
-        
-        <ChatMessageContent 
-          text={message.text}
-          isPending={message.pending}
-        />
-        
-        <ChatMessageTimestamp 
-          timestamp={message.ts}
-          isOwn={isOwn}
-        />
+        {!isOwn && <ChatMessageAuthor message={message} />}
+
+        <ChatMessageContent text={message.text} isPending={message.pending} />
+
+        <ChatMessageTimestamp timestamp={message.ts} isOwn={isOwn} />
       </div>
     </div>
   );

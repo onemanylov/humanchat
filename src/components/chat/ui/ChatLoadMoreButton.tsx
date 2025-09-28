@@ -7,11 +7,11 @@ export type ChatLoadMoreButtonProps = {
   className?: string;
 };
 
-export function ChatLoadMoreButton({ 
-  onLoadMore, 
-  isLoading, 
-  hasMore, 
-  className 
+export function ChatLoadMoreButton({
+  onLoadMore,
+  isLoading,
+  hasMore,
+  className,
 }: ChatLoadMoreButtonProps) {
   if (!hasMore) {
     return null;
@@ -23,9 +23,9 @@ export function ChatLoadMoreButton({
         void onLoadMore();
       }}
       disabled={isLoading}
-      className={`border-border mx-auto rounded-full border px-6 py-3 text-sm text-white/70 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${className || ''}`}
+      className={`border-border mx-auto rounded-full border px-4 py-2 text-sm text-black/50 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 ${className || ''}`}
     >
-      {isLoading ? 'Loading…' : 'Load more messages'}
+      {isLoading ? 'Loading…' : 'Load older messages'}
     </button>
   );
 }

@@ -2,23 +2,12 @@
 
 export type ChatMessageContentProps = {
   text: string;
-  isPending?: boolean;
   className?: string;
 };
 
-export function ChatMessageContent({ 
-  text, 
-  isPending = false, 
-  className 
+export function ChatMessageContent({
+  className,
+  text,
 }: ChatMessageContentProps) {
-  return (
-    <div className={`break-words ${className || ''}`}>
-      {text}
-      {isPending && (
-        <span className="ml-1 opacity-50" title="Sending...">
-          ⋯
-        </span>
-      )}
-    </div>
-  );
+  return <div className={`break-words ${className || ''}`}>{text}</div>;
 }
