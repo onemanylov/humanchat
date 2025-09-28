@@ -5,7 +5,7 @@ import localFont from 'next/font/local';
 import './globals.css';
 import MiniKitRootProvider from './providers/minikit-provider';
 import AppTRPCProvider from './providers/trpc-provider';
-import ErudaProvider from './providers/eruda-provider';
+// import ErudaProvider from './providers/eruda-provider';
 import AppI18nProvider from './providers/i18n-provider';
 import { ChatProvider } from '~/providers/ChatProvider';
 import DevMenu from '~/components/DevMenu';
@@ -67,18 +67,18 @@ export default function RootLayout({
         className={`${tiktokSans.variable} ${geistMono.variable} antialiased`}
       >
         <AppTRPCProvider>
-          <ErudaProvider>
-            <AppI18nProvider>
-              <MiniKitRootProvider>
-                <ChatProvider>
-                  <AppShell>
-                    {children}
-                    <DevMenu />
-                  </AppShell>
-                </ChatProvider>
-              </MiniKitRootProvider>
-            </AppI18nProvider>
-          </ErudaProvider>
+          {/* <ErudaProvider> */}
+          <AppI18nProvider>
+            <MiniKitRootProvider>
+              <ChatProvider>
+                <AppShell>
+                  {children}
+                  <DevMenu />
+                </AppShell>
+              </ChatProvider>
+            </MiniKitRootProvider>
+          </AppI18nProvider>
+          {/* </ErudaProvider> */}
         </AppTRPCProvider>
       </body>
     </html>
