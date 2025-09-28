@@ -86,19 +86,11 @@ export function getChatKeys(source: EnvLike): {
   };
 }
 
-export async function redisRPUSH(
-  source: EnvLike,
-  key: string,
-  value: string,
-) {
+export async function redisRPUSH(source: EnvLike, key: string, value: string) {
   await redisCommand(source, ['RPUSH', key, value]);
 }
 
-export async function redisSET(
-  source: EnvLike,
-  key: string,
-  value: string,
-) {
+export async function redisSET(source: EnvLike, key: string, value: string) {
   await redisCommand(source, ['SET', key, value]);
 }
 
@@ -139,4 +131,33 @@ export async function redisPipelineCommands(
   commands: RedisCommand[],
 ): Promise<PipelineEntry[]> {
   return redisPipeline(source, commands);
+}
+
+export async function redisPersistError(
+  source: EnvLike,
+  context: string,
+  error: unknown,
+) {
+  try {
+    const timestamp = Date.now().toString();
+    const errorData = {
+      context,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    };
+
+    const network = getNetwork(source);
+    const errorsKey = `${network}:errors`;
+
+    await redisCommand(source, [
+      'HSET',
+      errorsKey,
+      timestamp,
+      JSON.stringify(errorData),
+    ]);
+  } catch (persistError) {
+    // If error persistence fails, log to console as fallback
+    console.error('Failed to persist error to Redis:', persistError);
+  }
 }

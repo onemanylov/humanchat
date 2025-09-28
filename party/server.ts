@@ -2,6 +2,7 @@ import type * as Party from 'partykit/server';
 import { verifyJwtToken, type TokenPayload } from './auth';
 import { insertMessage, deleteMessage } from './storage';
 import { checkRateLimit } from './utils/rateLimit';
+import { redisPersistError } from './utils/redis';
 import type { EnvLike } from './utils/env';
 import { containsProhibitedContent } from '~/lib/chat/validation';
 import type { ChatMessage } from '~/lib/chat/types';
@@ -48,7 +49,11 @@ export default class ChatServer implements Party.Server {
 
       await this.handleChatMessage(parsed, sender);
     } catch (err) {
-      console.warn('[onMessage] invalid payload', err);
+      await redisPersistError(
+        this.envSource,
+        'onMessage: Unexpected error',
+        err,
+      );
     }
   }
 
@@ -56,12 +61,21 @@ export default class ChatServer implements Party.Server {
     // Verify JWT token
     const secret = this.room.env.JWT_SECRET as string | undefined;
     if (!secret) {
-      return sender.send(
-        JSON.stringify({
-          type: 'error:auth',
-          message: 'Server configuration error',
-        }),
-      );
+      try {
+        sender.send(
+          JSON.stringify({
+            type: 'error:auth',
+            message: 'Server configuration error',
+          }),
+        );
+      } catch (err) {
+        await redisPersistError(
+          this.envSource,
+          'handleChatMessage: Error sending server config error',
+          err,
+        );
+      }
+      return;
     }
 
     let tokenPayload: TokenPayload;
@@ -72,34 +86,70 @@ export default class ChatServer implements Party.Server {
       );
       tokenPayload = payload;
     } catch (err) {
-      return sender.send(
-        JSON.stringify({
-          type: 'error:auth',
-          message: 'Invalid or expired token',
-        }),
+      await redisPersistError(
+        this.envSource,
+        'handleChatMessage: JWT verification error',
+        err,
       );
+      try {
+        sender.send(
+          JSON.stringify({
+            type: 'error:auth',
+            message: 'Invalid or expired token',
+          }),
+        );
+      } catch (sendErr) {
+        await redisPersistError(
+          this.envSource,
+          'handleChatMessage: Error sending JWT error',
+          sendErr,
+        );
+      }
+      return;
     }
 
     // Check if user is banned before processing
     const wallet = tokenPayload.wallet;
     if (wallet) {
-      const banService = new BanService(this.envSource);
-      const banStatus = await banService.getBanStatus(wallet);
-      
-      if (banStatus.isBanned) {
-        const message = banStatus.isTemporary 
-          ? VIOLATION_MESSAGES.TEMP_BAN(banStatus.reason || 'policy violation')
-          : VIOLATION_MESSAGES.PERM_BAN(banStatus.reason || 'policy violation');
-        
-        return sender.send(
-          JSON.stringify({
-            type: 'error:banned',
-            message,
-            isTemporary: banStatus.isTemporary,
-            expiresAt: banStatus.expiresAt,
-            reason: banStatus.reason,
-          }),
+      try {
+        const banService = new BanService(this.envSource);
+        const banStatus = await banService.getBanStatus(wallet);
+
+        if (banStatus.isBanned) {
+          const message = banStatus.isTemporary
+            ? VIOLATION_MESSAGES.TEMP_BAN(
+                banStatus.reason || 'policy violation',
+              )
+            : VIOLATION_MESSAGES.PERM_BAN(
+                banStatus.reason || 'policy violation',
+              );
+
+          try {
+            sender.send(
+              JSON.stringify({
+                type: 'error:banned',
+                message,
+                isTemporary: banStatus.isTemporary,
+                expiresAt: banStatus.expiresAt,
+                reason: banStatus.reason,
+              }),
+            );
+          } catch (err) {
+            await redisPersistError(
+              this.envSource,
+              'handleChatMessage: Error sending ban error',
+              err,
+            );
+          }
+          return;
+        }
+      } catch (err) {
+        await redisPersistError(
+          this.envSource,
+          'handleChatMessage: Error checking ban status',
+          err,
         );
+        // Continue processing if ban check fails - fail open
       }
     }
 
@@ -107,13 +157,22 @@ export default class ChatServer implements Party.Server {
     if (!text) return;
 
     if (containsProhibitedContent(text)) {
-      return sender.send(
-        JSON.stringify({
-          type: 'error:validation',
-          reason: 'prohibited_content',
-          message: 'Links and wallet addresses are not allowed',
-        }),
-      );
+      try {
+        sender.send(
+          JSON.stringify({
+            type: 'error:validation',
+            reason: 'prohibited_content',
+            message: 'Links and wallet addresses are not allowed',
+          }),
+        );
+      } catch (err) {
+        await redisPersistError(
+          this.envSource,
+          'handleChatMessage: Error sending validation error',
+          err,
+        );
+      }
+      return;
     }
 
     // Rate limiting
@@ -121,18 +180,31 @@ export default class ChatServer implements Party.Server {
     try {
       const result = await checkRateLimit(this.room.env, key);
       if (result && !result.success) {
-        return sender.send(
-          JSON.stringify({
-            type: 'error:rateLimit',
-            message: 'Rate limit exceeded',
-            retryAt: result.reset,
-            limit: result.limit,
-            remaining: result.remaining,
-          }),
-        );
+        try {
+          sender.send(
+            JSON.stringify({
+              type: 'error:rateLimit',
+              message: 'Rate limit exceeded',
+              retryAt: result.reset,
+              limit: result.limit,
+              remaining: result.remaining,
+            }),
+          );
+        } catch (err) {
+          await redisPersistError(
+            this.envSource,
+            'handleChatMessage: Error sending rate limit error',
+            err,
+          );
+        }
+        return;
       }
     } catch (err) {
-      console.error('Rate limit error:', err);
+      await redisPersistError(
+        this.envSource,
+        'handleChatMessage: Rate limit error',
+        err,
+      );
     }
 
     const chatMessage: ChatMessage = {
@@ -155,7 +227,11 @@ export default class ChatServer implements Party.Server {
       // Moderate the message asynchronously
       this.moderateMessageAsync(chatMessage);
     } catch (err) {
-      console.error('Message storage error:', err);
+      await redisPersistError(
+        this.envSource,
+        'handleChatMessage: Message storage/broadcast error',
+        err,
+      );
     }
   }
 
@@ -166,78 +242,155 @@ export default class ChatServer implements Party.Server {
         return; // Skip moderation if service unavailable or no wallet
       }
 
-      const moderationResult = await moderationService.moderateText(message.text);
-      
+      const moderationResult = await moderationService.moderateText(
+        message.text,
+      );
+
       if (moderationResult.flagged) {
-        console.log(`Message flagged: ${message.id} - ${moderationResult.reason}`);
-        
-        // Delete the message from storage
-        await deleteMessage(this.envSource, message.id);
-        
-        // Broadcast message deletion to all clients
-        this.room.broadcast(
-          JSON.stringify({
-            type: 'chat:message:deleted',
-            messageId: message.id,
-          }),
+        console.log(
+          `Message flagged: ${message.id} - ${moderationResult.reason}`,
         );
+
+        // Delete the message from storage
+        try {
+          await deleteMessage(this.envSource, message.id);
+        } catch (err) {
+          await redisPersistError(
+            this.envSource,
+            'moderateMessageAsync: Error deleting message',
+            err,
+          );
+          // Continue with violation handling even if deletion fails
+        }
+
+        // Broadcast message deletion to all clients
+        try {
+          this.room.broadcast(
+            JSON.stringify({
+              type: 'chat:message:deleted',
+              messageId: message.id,
+            }),
+          );
+        } catch (err) {
+          await redisPersistError(
+            this.envSource,
+            'moderateMessageAsync: Error broadcasting message deletion',
+            err,
+          );
+        }
 
         // Handle user violation
         const violationService = new UserViolationService(this.envSource);
         const banService = new BanService(this.envSource);
-        
-        const action = await violationService.recordViolation(
-          message.wallet,
-          moderationResult.reason || 'policy violation'
-        );
+
+        let action: string;
+        try {
+          action = await violationService.recordViolation(
+            message.wallet,
+            moderationResult.reason || 'policy violation',
+          );
+        } catch (err) {
+          await redisPersistError(
+            this.envSource,
+            'moderateMessageAsync: Error recording violation',
+            err,
+          );
+          return; // Don't proceed with ban if violation recording fails
+        }
 
         switch (action) {
           case 'warning':
-            this.room.broadcast(
-              JSON.stringify({
-                type: 'chat:user:warned',
-                wallet: message.wallet,
-                reason: moderationResult.reason || 'policy violation',
-              }),
-            );
+            try {
+              this.room.broadcast(
+                JSON.stringify({
+                  type: 'chat:user:warned',
+                  wallet: message.wallet,
+                  reason: moderationResult.reason || 'policy violation',
+                }),
+              );
+            } catch (err) {
+              await redisPersistError(
+                this.envSource,
+                'moderateMessageAsync: Error broadcasting user warning',
+                err,
+              );
+            }
             break;
 
           case 'tempBan':
-            await banService.applyTempBan(
-              message.wallet,
-              moderationResult.reason || 'policy violation'
-            );
-            
-            this.room.broadcast(
-              JSON.stringify({
-                type: 'chat:user:banned',
-                wallet: message.wallet,
-                reason: moderationResult.reason || 'policy violation',
-                isTemporary: true,
-                expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
-              }),
-            );
+            try {
+              await banService.applyTempBan(
+                message.wallet,
+                moderationResult.reason || 'policy violation',
+              );
+            } catch (err) {
+              await redisPersistError(
+                this.envSource,
+                'moderateMessageAsync: Error applying temp ban',
+                err,
+              );
+              break; // Don't broadcast if ban application fails
+            }
+
+            try {
+              this.room.broadcast(
+                JSON.stringify({
+                  type: 'chat:user:banned',
+                  wallet: message.wallet,
+                  reason: moderationResult.reason || 'policy violation',
+                  isTemporary: true,
+                  expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+                }),
+              );
+            } catch (err) {
+              await redisPersistError(
+                this.envSource,
+                'moderateMessageAsync: Error broadcasting temp ban',
+                err,
+              );
+            }
             break;
 
           case 'permBan':
-            await banService.applyPermBan(
-              message.wallet,
-              moderationResult.reason || 'policy violation'
-            );
-            
-            this.room.broadcast(
-              JSON.stringify({
-                type: 'chat:user:banned',
-                wallet: message.wallet,
-                reason: moderationResult.reason || 'policy violation',
-                isTemporary: false,
-              }),
-            );
+            try {
+              await banService.applyPermBan(
+                message.wallet,
+                moderationResult.reason || 'policy violation',
+              );
+            } catch (err) {
+              await redisPersistError(
+                this.envSource,
+                'moderateMessageAsync: Error applying perm ban',
+                err,
+              );
+              break; // Don't broadcast if ban application fails
+            }
+
+            try {
+              this.room.broadcast(
+                JSON.stringify({
+                  type: 'chat:user:banned',
+                  wallet: message.wallet,
+                  reason: moderationResult.reason || 'policy violation',
+                  isTemporary: false,
+                }),
+              );
+            } catch (err) {
+              await redisPersistError(
+                this.envSource,
+                'moderateMessageAsync: Error broadcasting perm ban',
+                err,
+              );
+            }
             break;
         }
       }
     } catch (error) {
-      console.error('Moderation error:', error);
+      await redisPersistError(
+        this.envSource,
+        'moderateMessageAsync: Moderation error',
+        error,
+      );
       // Don't take action on moderation errors to avoid false positives
     }
   }
