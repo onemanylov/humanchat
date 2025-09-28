@@ -59,7 +59,7 @@ export function ChatMessages({ className }: ChatMessagesProps) {
       {/* Messages container */}
       <div
         ref={listRef}
-        className="flex h-full w-full flex-col gap-2 overflow-y-auto py-2 pt-16 pr-0 pb-18"
+        className="flex h-full w-full flex-col gap-2 overflow-y-auto py-2 pt-16 pr-0 pb-22"
       >
         <ChatLoadMoreButton
           onLoadMore={async () => {
@@ -88,7 +88,7 @@ export function ChatMessages({ className }: ChatMessagesProps) {
 
       {/* Progressive blur at the bottom */}
       <ProgressiveBlur
-        className="pointer-events-none fixed bottom-0 left-0 h-16 w-full"
+        className="pointer-events-none fixed bottom-0 left-0 h-20 w-full"
         direction="bottom"
         blurIntensity={2}
         blurLayers={4}

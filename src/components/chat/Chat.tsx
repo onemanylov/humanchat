@@ -17,19 +17,19 @@ export default function Chat() {
   }>({ showLengthError: false, errorMessage: null });
 
   return (
-    <div className="relative flex h-screen w-screen flex-col bg-background text-foreground">
+    <div className="bg-background text-foreground relative flex h-screen w-screen flex-col">
       {/* Fixed overlaying top bar */}
-      <div className="fixed top-0 left-0 right-0 z-50">
+      <div className="fixed top-0 right-0 left-0 z-50">
         <TopBar onlineUsers={onlineUsers} />
       </div>
-      
+
       {/* Messages take full height */}
       <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
         <ChatMessages />
       </div>
 
       {/* Fixed floating input at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 z-40">
+      <div className="fixed right-0 bottom-4 left-0 z-40">
         <ChatInput onValidationChange={setInputValidation} />
       </div>
 
@@ -37,7 +37,7 @@ export default function Chat() {
         {inputValidation.showLengthError && inputValidation.errorMessage && (
           <ChatValidationPill message={inputValidation.errorMessage} />
         )}
-        <ChatRateLimitBanner 
+        <ChatRateLimitBanner
           rateLimit={rateLimit}
           remainingSeconds={remainingSeconds}
         />
