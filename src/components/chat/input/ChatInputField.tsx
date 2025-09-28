@@ -93,7 +93,11 @@ export function ChatInputField({
       />
       {onSend && (
         <div className="absolute right-2 bottom-1.5">
-          <ChatSendButton onClick={onSend} disabled={!canSend || isDisabled} />
+          <ChatSendButton 
+            onClick={onSend} 
+            disabled={!canSend || isDisabled}
+            hasContent={value.trim().length > 0}
+          />
         </div>
       )}
     </div>

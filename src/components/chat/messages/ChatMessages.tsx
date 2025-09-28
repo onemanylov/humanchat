@@ -86,7 +86,7 @@ export function ChatMessages({ className }: ChatMessagesProps) {
 
       {/* Progressive blur at the bottom */}
       <ProgressiveBlur
-        className="pointer-events-none absolute bottom-0 left-0 h-20 w-full"
+        className="pointer-events-none absolute bottom-0 left-0 h-16 w-full"
         direction="bottom"
         blurIntensity={1}
         blurLayers={8}

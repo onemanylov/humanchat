@@ -1,43 +1,55 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'motion/react';
 
 export type ChatSendButtonProps = {
   onClick: () => void;
   disabled?: boolean;
   className?: string;
+  hasContent?: boolean;
 };
 
-export function ChatSendButton({ onClick, disabled = false, className = '' }: ChatSendButtonProps) {
+export function ChatSendButton({
+  onClick,
+  disabled = false,
+  className = '',
+  hasContent = false,
+}: ChatSendButtonProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`
-        flex items-center justify-center w-8 h-8 rounded-full
-        transition-colors duration-200
-        ${disabled 
-          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-          : 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'
-        }
-        ${className}
-      `}
+      className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-200 ${
+        disabled
+          ? 'cursor-not-allowed bg-neutral-200 text-neutral-400'
+          : 'bg-gradient-to-b from-[#239cf9] to-[#1c93f5] text-white'
+      } ${className} `}
       type="button"
       aria-label="Send message"
     >
-      <svg 
-        width="16" 
-        height="16" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
+      <motion.svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
         strokeLinejoin="round"
+        animate={{
+          rotate: hasContent ? 0 : 45,
+        }}
+        transition={{
+          type: 'spring',
+          stiffness: 300,
+          damping: 20,
+          mass: 0.5,
+        }}
       >
-        <path d="m22 2-7 20-4-9-9-4Z" />
-        <path d="M22 2 11 13" />
-      </svg>
+        <path d="m5 12 7-7 7 7" />
+        <path d="M12 19V5" />
+      </motion.svg>
     </button>
   );
 }
