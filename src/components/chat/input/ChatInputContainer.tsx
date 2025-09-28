@@ -9,7 +9,9 @@ export type ChatInputContainerProps = {
 
 export function ChatInputContainer({ children, className }: ChatInputContainerProps) {
   return (
-    <div className={`bg-transparent p-2 ${className || ''}`}>
+    <div
+      className={`bg-transparent px-2 pt-2 pb-[max(env(safe-area-inset-bottom,0px),0.5rem)] ${className || ''}`}
+    >
       {children}
     </div>
   );
