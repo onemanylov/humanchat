@@ -84,7 +84,7 @@ export function ChatMessageRow({
         className={cn(
           'max-w-[80%] rounded-[18px] px-3 py-2 text-sm',
           isOwn
-            ? 'bg-[#007AFF] text-white'
+            ? 'bg-gradient-to-b from-[#239cf9] to-[#1c93f5] text-white'
             : 'bg-black/7.5 text-black backdrop-blur-sm',
           !isNewBlock && !isOwn && 'rounded-tl-md',
           !isNewBlock && isOwn && 'rounded-tr-md',
