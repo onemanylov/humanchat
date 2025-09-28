@@ -31,9 +31,10 @@ export function ChatMessage({
         className,
       )}
     >
-      {!isOwn && (
+      {!isOwn && isNewBlock && (
         <ChatMessageAvatar message={message} isOwn={isOwn} size={36} />
       )}
+      {!isOwn && !isNewBlock && <div className="w-9" />}
 
       <div
         className={cn(
@@ -45,7 +46,7 @@ export function ChatMessage({
           !isNewBlock && isOwn && 'rounded-tr-md',
         )}
       >
-        {!isOwn && <ChatMessageAuthor message={message} />}
+        {!isOwn && isNewBlock && <ChatMessageAuthor message={message} />}
 
         <ChatMessageContent text={message.text} />
 

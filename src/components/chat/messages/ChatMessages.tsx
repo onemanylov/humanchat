@@ -90,8 +90,8 @@ export function ChatMessages({ className }: ChatMessagesProps) {
       <ProgressiveBlur
         className="pointer-events-none fixed bottom-0 left-0 h-16 w-full"
         direction="bottom"
-        blurIntensity={1}
-        blurLayers={8}
+        blurIntensity={2}
+        blurLayers={4}
       />
 
       {/* Scroll to bottom button */}

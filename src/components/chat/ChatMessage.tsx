@@ -57,7 +57,8 @@ export function ChatMessageRow({
         isOwn ? 'justify-end' : 'justify-start',
       )}
     >
-      {!isOwn && renderAvatar(message, isOwn)}
+      {!isOwn && isNewBlock && renderAvatar(message, isOwn)}
+      {!isOwn && !isNewBlock && <div className="w-9" />}
       <div
         className={cn(
           'max-w-[80%] rounded-[18px] px-3 py-2 text-sm',
@@ -68,7 +69,7 @@ export function ChatMessageRow({
           !isNewBlock && isOwn && 'rounded-tr-md',
         )}
       >
-        {!isOwn && (
+        {!isOwn && isNewBlock && (
           <div className="text-[11px] font-medium opacity-50">
             {formatDisplayName(message)}
           </div>
