@@ -36,8 +36,8 @@ function formatDisplayName(message: ChatMessage) {
 function renderAvatar(message: ChatMessage, isOwn: boolean) {
   const fallback = formatDisplayName(message).slice(0, 1).toUpperCase();
   const className = cn(
-    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white/80 shadow-inner',
-    isOwn && 'order-2 bg-violet-500/30 text-white',
+    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground shadow-inner',
+    isOwn && 'order-2 bg-primary text-primary-foreground',
   );
 
   if (message.profilePictureUrl) {
@@ -57,7 +57,7 @@ function renderAvatar(message: ChatMessage, isOwn: boolean) {
 }
 
 export function ChatMessageRow({ message, isOwn }: ChatMessageRowProps) {
-  const timestamp = message.pending ? 'Sending…' : formatTimestamp(message.ts);
+  const timestamp = formatTimestamp(message.ts);
 
   return (
     <div
@@ -68,14 +68,19 @@ export function ChatMessageRow({ message, isOwn }: ChatMessageRowProps) {
     >
       {!isOwn && renderAvatar(message, isOwn)}
       <div className="max-w-[70%] space-y-1">
-        <div className={cn('flex items-center gap-3 text-[11px] uppercase tracking-wide text-white/50', isOwn && 'flex-row-reverse')}>
+        <div
+          className={cn(
+            'flex items-center gap-3 text-[11px] uppercase tracking-wide text-muted-foreground',
+            isOwn && 'flex-row-reverse',
+          )}
+        >
           <span>{formatDisplayName(message)}</span>
-          <span className={cn(message.pending && 'text-white/40')}>{timestamp}</span>
+          <span className={cn('text-muted-foreground', message.pending && 'opacity-70')}>{timestamp}</span>
         </div>
         <div
           className={cn(
-            'rounded-2xl bg-white/10 px-4 py-2 text-sm text-white shadow-lg backdrop-blur transition-opacity',
-            isOwn && 'bg-violet-500/40 text-white',
+            'rounded-2xl bg-muted px-4 py-2 text-sm text-foreground shadow-sm transition-opacity',
+            isOwn && 'bg-primary text-primary-foreground',
             message.pending && 'opacity-70',
           )}
         >

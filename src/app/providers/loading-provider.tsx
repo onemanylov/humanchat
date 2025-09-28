@@ -1,7 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { useIsFetching, useIsMutating } from "@tanstack/react-query";
+import { useMemo } from 'react';
+import { useIsFetching, useIsMutating } from '@tanstack/react-query';
+import { useDelayedLoading } from '~/hooks';
 
 export default function FullPageLoadingProvider({
   children,
@@ -14,18 +15,7 @@ export default function FullPageLoadingProvider({
     () => isFetching + isMutating > 0,
     [isFetching, isMutating],
   );
-  const [show, setShow] = useState(true);
-  const [completed, setCompleted] = useState(false);
-
-  useEffect(() => {
-    if (!completed && !busy) {
-      const id = setTimeout(() => {
-        setShow(false);
-        setCompleted(true);
-      }, 500);
-      return () => clearTimeout(id);
-    }
-  }, [busy, completed]);
+  const { show } = useDelayedLoading(busy, 500);
 
   return (
     <>
