@@ -6,6 +6,8 @@ import { SESSION_COOKIE_NAME, createSessionToken } from "~/lib/auth";
 import { verifySiweMessage } from "@worldcoin/minikit-js";
 import { eq } from "drizzle-orm";
 import { env } from "~/env";
+import { BanService } from "~/lib/moderation/BanService";
+import type { EnvLike } from "../../../party/utils/env";
 
 const WalletAuthPayload = z.object({
   status: z.literal("success"),
@@ -91,7 +93,28 @@ export const authRouter = router({
       .from(users)
       .where(eq(users.wallet, ctx.session!.wallet))
       .limit(1);
-    return { user };
+
+    // Check ban status
+    let banStatus = null;
+    try {
+      const envSource: EnvLike = {
+        env: {
+          UPSTASH_REDIS_REST_URL: env.UPSTASH_REDIS_REST_URL,
+          UPSTASH_REDIS_REST_TOKEN: env.UPSTASH_REDIS_REST_TOKEN,
+          VITE_NETWORK: process.env.VITE_NETWORK ?? 'default',
+        },
+      };
+      
+      const banService = new BanService(envSource);
+      banStatus = await banService.getBanStatus(ctx.session!.wallet);
+    } catch (error) {
+      console.error('Failed to check ban status:', error);
+    }
+
+    return { 
+      user, 
+      banStatus: banStatus?.isBanned ? banStatus : null 
+    };
   }),
   signOut: protectedProcedure.mutation(async ({ ctx }) => {
     ctx.deleteCookie(SESSION_COOKIE_NAME);

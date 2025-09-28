@@ -14,9 +14,13 @@ export type OutgoingWebSocketEvent = {
 
 export type IncomingWebSocketEvent =
   | { type: 'chat:new'; message: ChatMessage }
+  | { type: 'chat:message:deleted'; messageId: string }
+  | { type: 'chat:user:warned'; wallet: string; reason: string }
+  | { type: 'chat:user:banned'; wallet: string; reason: string; isTemporary: boolean; expiresAt?: number }
   | { type: 'error:rateLimit'; message: string; retryAt: number; limit: number; remaining: number }
   | { type: 'error:validation'; message: string; reason?: string }
-  | { type: 'error:auth'; message: string };
+  | { type: 'error:auth'; message: string }
+  | { type: 'error:banned'; message: string; isTemporary?: boolean; expiresAt?: number; reason?: string };
 
 /**
  * Creates a WebSocket message payload for sending a chat message

@@ -22,6 +22,28 @@ export type RateLimitEvent = {
   remaining: number;
 };
 
+// Moderation event types
+export type ModerationWarningEvent = {
+  type: 'chat:user:warned';
+  wallet: string;
+  reason: string;
+};
+
+export type ModerationBanEvent = {
+  type: 'chat:user:banned';
+  wallet: string;
+  reason: string;
+  isTemporary: boolean;
+  expiresAt?: number;
+};
+
+export type BanStatus = {
+  isBanned: boolean;
+  isTemporary: boolean;
+  reason?: string;
+  expiresAt?: number;
+};
+
 // Chat context type
 export type ChatContextType = {
   // Messages
@@ -45,6 +67,10 @@ export type ChatContextType = {
   // Rate limiting
   rateLimit: RateLimitEvent | null;
   remainingSeconds: number;
+  
+  // Moderation
+  moderationWarning: ModerationWarningEvent | null;
+  banStatus: BanStatus | null;
   
   // Actions
   sendMessage: (text: string) => Promise<boolean>;
@@ -87,6 +113,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // State
   const [connectionState, setConnectionState] = useState<WebSocketConnectionState>('disconnected');
   const [rateLimit, setRateLimit] = useState<RateLimitEvent | null>(null);
+  const [moderationWarning, setModerationWarning] = useState<ModerationWarningEvent | null>(null);
+  const [banStatus, setBanStatus] = useState<BanStatus | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
@@ -96,6 +124,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       messageService.current = new ChatMessageService(utils);
     }
   }, [utils]);
+
+  // Update ban status from server response
+  useEffect(() => {
+    setBanStatus(userQuery.data?.banStatus || null);
+  }, [userQuery.data?.banStatus]);
 
   // Handle rate limit timing
   useEffect(() => {
@@ -119,20 +152,61 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   // WebSocket event handler
   const handleWebSocketEvent = useCallback((event: IncomingWebSocketEvent) => {
+    const currentUser = userQuery.data?.user;
+    
     switch (event.type) {
       case 'chat:new':
         if (event.message && messageService.current) {
           messageService.current.addMessage(event.message);
         }
         break;
+      case 'chat:message:deleted':
+        if (messageService.current) {
+          messageService.current.removeMessage(event.messageId);
+        }
+        break;
+      case 'chat:user:warned':
+        // Only show warning for current user
+        if (currentUser?.wallet === event.wallet) {
+          setModerationWarning(event);
+          // Clear warning after 10 seconds
+          setTimeout(() => setModerationWarning(null), 10000);
+        }
+        break;
+      case 'chat:user:banned':
+        // Only show ban for current user
+        if (currentUser?.wallet === event.wallet) {
+          const newBanStatus: BanStatus = {
+            isBanned: true,
+            isTemporary: event.isTemporary,
+            reason: event.reason,
+            expiresAt: event.expiresAt,
+          };
+          setBanStatus(newBanStatus);
+          // Refetch user data to update ban status from server
+          userQuery.refetch();
+        }
+        break;
       case 'error:rateLimit':
         setRateLimit(event);
+        break;
+      case 'error:banned':
+        // Handle ban error from server
+        const banStatusFromError: BanStatus = {
+          isBanned: true,
+          isTemporary: event.isTemporary || false,
+          reason: event.reason,
+          expiresAt: event.expiresAt,
+        };
+        setBanStatus(banStatusFromError);
+        // Refetch user data to update ban status from server
+        userQuery.refetch();
         break;
       case 'error:validation':
         console.warn('Chat validation error:', event.message);
         break;
     }
-  }, []);
+  }, [userQuery.data?.user]);
 
   // Manage WebSocket connection
   useEffect(() => {
@@ -284,6 +358,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // Rate limiting
     rateLimit,
     remainingSeconds,
+    
+    // Moderation
+    moderationWarning,
+    banStatus,
     
     // Actions
     sendMessage,

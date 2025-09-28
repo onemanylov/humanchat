@@ -15,6 +15,9 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: z.string().min(1).catch(''),
     CHAT_RATE_LIMIT_MAX: z.string().optional(),
     CHAT_RATE_LIMIT_WINDOW_SECONDS: z.string().optional(),
+    OPENAI_API_KEY: isProd
+      ? z.string().min(1)
+      : z.string().min(1).catch(''),
   },
   client: {
     NEXT_PUBLIC_PUBLISHABLE_KEY: z.string().optional(),
@@ -31,6 +34,7 @@ export const env = createEnv({
     CHAT_RATE_LIMIT_MAX: process.env.CHAT_RATE_LIMIT_MAX,
     CHAT_RATE_LIMIT_WINDOW_SECONDS:
       process.env.CHAT_RATE_LIMIT_WINDOW_SECONDS,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     NEXT_PUBLIC_PARTYKIT_HOST: process.env.NEXT_PUBLIC_PARTYKIT_HOST,
   },
 });

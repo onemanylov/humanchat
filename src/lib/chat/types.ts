@@ -13,3 +13,22 @@ export type ChatMessageEnvelope = {
   type: 'chat:new';
   message: ChatMessage;
 };
+
+export type ChatMessageDeletedEnvelope = {
+  type: 'chat:message:deleted';
+  messageId: string;
+};
+
+export type ChatUserWarnedEnvelope = {
+  type: 'chat:user:warned';
+  wallet: string;
+  reason: string;
+};
+
+export type ChatUserBannedEnvelope = {
+  type: 'chat:user:banned';
+  wallet: string;
+  reason: string;
+  isTemporary: boolean;
+  expiresAt?: number;
+};
