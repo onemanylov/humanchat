@@ -1,7 +1,7 @@
 import type * as Party from 'partykit/server';
 import { verifyJwtToken, type TokenPayload } from './auth';
 import { insertMessage } from './storage';
-import { initializeRateLimit, CustomRateLimiter } from './utils/rateLimit';
+import { checkRateLimit } from './utils/rateLimit';
 import type { EnvLike } from './utils/env';
 import { containsProhibitedLink } from '~/lib/chat/validation';
 import type { ChatMessage } from '~/lib/chat/types';
@@ -11,8 +11,6 @@ export default class ChatServer implements Party.Server {
   readonly options: Party.ServerOptions = {
     hibernate: true,
   };
-  
-  private ratelimit: CustomRateLimiter | null = null;
 
   constructor(readonly room: Party.Room) {}
 
@@ -20,83 +18,85 @@ export default class ChatServer implements Party.Server {
     return { env: this.room.env as Record<string, string | undefined> };
   }
 
+  private parseMessage(message: string) {
+    const parsed = JSON.parse(message);
+    const valid =
+      parsed?.type === 'chat:message' &&
+      typeof parsed.text === 'string' &&
+      typeof parsed.token === 'string';
 
-  onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-    if (!this.ratelimit) {
-      this.ratelimit = initializeRateLimit(this.envSource.env);
-    }
+    return { parsed, valid };
   }
 
   async onMessage(message: string, sender: Party.Connection) {
     try {
-      const parsed = JSON.parse(message);
+      const { parsed, valid } = this.parseMessage(message);
+      if (!valid) return;
 
-      if (
-        parsed?.type === 'chat:message' &&
-        typeof parsed.text === 'string' &&
-        typeof parsed.token === 'string' &&
-        parsed.text.trim()
-      ) {
-        await this.handleChatMessage(parsed, sender);
-      }
+      await this.handleChatMessage(parsed, sender);
     } catch (err) {
       console.warn('[onMessage] invalid payload', err);
     }
-  }
-
-  onClose(conn: Party.Connection) {
-    // No cleanup needed - connection state is handled by PartyKit
   }
 
   private async handleChatMessage(parsed: any, sender: Party.Connection) {
     // Verify JWT token
     const secret = this.room.env.JWT_SECRET as string | undefined;
     if (!secret) {
-      return sender.send(JSON.stringify({
-        type: 'error:auth',
-        message: 'Server configuration error',
-      }));
+      return sender.send(
+        JSON.stringify({
+          type: 'error:auth',
+          message: 'Server configuration error',
+        }),
+      );
     }
 
     let tokenPayload: TokenPayload;
     try {
-      const { payload } = await verifyJwtToken<TokenPayload>(parsed.token, secret);
+      const { payload } = await verifyJwtToken<TokenPayload>(
+        parsed.token,
+        secret,
+      );
       tokenPayload = payload;
     } catch (err) {
-      return sender.send(JSON.stringify({
-        type: 'error:auth',
-        message: 'Invalid or expired token',
-      }));
+      return sender.send(
+        JSON.stringify({
+          type: 'error:auth',
+          message: 'Invalid or expired token',
+        }),
+      );
     }
 
     const text = String(parsed.text).trim().slice(0, CHAT_MESSAGE_MAX_LENGTH);
     if (!text) return;
 
     if (containsProhibitedLink(text)) {
-      return sender.send(JSON.stringify({
-        type: 'error:validation',
-        reason: 'links',
-        message: 'Links are not allowed',
-      }));
+      return sender.send(
+        JSON.stringify({
+          type: 'error:validation',
+          reason: 'links',
+          message: 'Links are not allowed',
+        }),
+      );
     }
 
     // Rate limiting
-    if (this.ratelimit) {
-      const key = tokenPayload.wallet ?? `conn:${sender.id}`;
-      try {
-        const result = await this.ratelimit.limit(key);
-        if (!result.success) {
-          return sender.send(JSON.stringify({
+    const key = tokenPayload.wallet ?? `conn:${sender.id}`;
+    try {
+      const result = await checkRateLimit(this.room.env, key);
+      if (result && !result.success) {
+        return sender.send(
+          JSON.stringify({
             type: 'error:rateLimit',
             message: 'Rate limit exceeded',
             retryAt: result.reset,
             limit: result.limit,
             remaining: result.remaining,
-          }));
-        }
-      } catch (err) {
-        console.error('Rate limit error:', err);
+          }),
+        );
       }
+    } catch (err) {
+      console.error('Rate limit error:', err);
     }
 
     const chatMessage: ChatMessage = {
@@ -111,7 +111,9 @@ export default class ChatServer implements Party.Server {
 
     try {
       await insertMessage(this.envSource, chatMessage);
-      this.room.broadcast(JSON.stringify({ type: 'chat:new', message: chatMessage }));
+      this.room.broadcast(
+        JSON.stringify({ type: 'chat:new', message: chatMessage }),
+      );
     } catch (err) {
       console.error('Message storage error:', err);
     }
