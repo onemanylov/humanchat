@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
+
 import './globals.css';
 import MiniKitRootProvider from './providers/minikit-provider';
 import AppTRPCProvider from './providers/trpc-provider';
@@ -9,9 +11,31 @@ import { ChatProvider } from '~/providers/ChatProvider';
 import DevMenu from '~/components/DevMenu';
 import AppShell from './providers/app-shell';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+const tiktokSans = localFont({
+  src: [
+    {
+      path: '../../public/tiktoksans/TikTokSans-Regular.ttf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../../public/tiktoksans/TikTokSans-Medium.ttf',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../../public/tiktoksans/TikTokSans-SemiBold.ttf',
+      weight: '600',
+      style: 'normal',
+    },
+    {
+      path: '../../public/tiktoksans/TikTokSans-Bold.ttf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-tiktok-sans',
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
@@ -32,7 +56,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${tiktokSans.variable} ${geistMono.variable} antialiased`}
       >
         <AppTRPCProvider>
           <ErudaProvider>
