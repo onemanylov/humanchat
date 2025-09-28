@@ -77,18 +77,18 @@ export function ChatMessages({ className }: ChatMessagesProps) {
 
       {/* Progressive blur at the top */}
       <ProgressiveBlur
-        className="pointer-events-none absolute top-10 left-0 h-10 w-full"
+        className="pointer-events-none fixed top-10 left-0 h-10 w-full"
         direction="top"
         blurIntensity={0.5}
         blurLayers={4}
       />
 
       {/* white gradient at top */}
-      <div className="pointer-events-none absolute top-10 left-0 h-10 w-full bg-gradient-to-b from-white to-white/0"></div>
+      <div className="pointer-events-none fixed top-10 left-0 h-10 w-full bg-gradient-to-b from-white to-white/0"></div>
 
       {/* Progressive blur at the bottom */}
       <ProgressiveBlur
-        className="pointer-events-none absolute bottom-0 left-0 h-16 w-full"
+        className="pointer-events-none fixed bottom-0 left-0 h-16 w-full"
         direction="bottom"
         blurIntensity={1}
         blurLayers={8}
