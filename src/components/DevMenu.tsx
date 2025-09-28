@@ -12,7 +12,7 @@ export default function DevMenu() {
   const me = trpc.auth.me.useQuery(undefined, { retry: false });
   useKeyboardShortcut({ metaOrCtrl: true, key: 'd' }, () => setOpen((v) => !v));
   return (
-    <div className="fixed top-4 left-4 z-50">
+    <div className="fixed top-4 left-4 z-50 hidden">
       <button
         onClick={() => setOpen((v) => !v)}
         className="rounded-full bg-black px-4 py-2 text-sm text-white shadow-lg"

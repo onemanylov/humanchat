@@ -17,24 +17,31 @@ export default function Chat() {
   }>({ showLengthError: false, errorMessage: null });
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-background text-foreground">
-      <TopBar onlineUsers={onlineUsers} />
-      <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden">
-        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-          <ChatMessages />
-          <ChatInput onValidationChange={setInputValidation} />
-        </div>
-
-        <ChatPillContainer>
-          {inputValidation.showLengthError && inputValidation.errorMessage && (
-            <ChatValidationPill message={inputValidation.errorMessage} />
-          )}
-          <ChatRateLimitBanner 
-            rateLimit={rateLimit}
-            remainingSeconds={remainingSeconds}
-          />
-        </ChatPillContainer>
+    <div className="relative flex h-screen w-screen flex-col bg-background text-foreground">
+      {/* Fixed overlaying top bar */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <TopBar onlineUsers={onlineUsers} />
       </div>
+      
+      {/* Messages take full height */}
+      <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+        <ChatMessages />
+      </div>
+
+      {/* Fixed floating input at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-40">
+        <ChatInput onValidationChange={setInputValidation} />
+      </div>
+
+      <ChatPillContainer>
+        {inputValidation.showLengthError && inputValidation.errorMessage && (
+          <ChatValidationPill message={inputValidation.errorMessage} />
+        )}
+        <ChatRateLimitBanner 
+          rateLimit={rateLimit}
+          remainingSeconds={remainingSeconds}
+        />
+      </ChatPillContainer>
     </div>
   );
 }

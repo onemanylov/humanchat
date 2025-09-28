@@ -7,19 +7,20 @@ import { ChatMessageList } from './ChatMessageList';
 import { ChatLoadMoreButton } from '../ui/ChatLoadMoreButton';
 import { ChatScrollToBottom } from '../ui/ChatScrollToBottom';
 import { ChatLoadingIndicator } from '../ui/ChatLoadingIndicator';
+import { ProgressiveBlur } from '~/components/ui/progressive-blur';
 
 export type ChatMessagesProps = {
   className?: string;
 };
 
 export function ChatMessages({ className }: ChatMessagesProps) {
-  const { 
-    messages, 
-    isInitialLoading, 
-    isLoadingMore, 
-    hasMoreMessages, 
-    loadOlderMessages, 
-    currentUser 
+  const {
+    messages,
+    isInitialLoading,
+    isLoadingMore,
+    hasMoreMessages,
+    loadOlderMessages,
+    currentUser,
   } = useChat();
 
   const {
@@ -31,7 +32,11 @@ export function ChatMessages({ className }: ChatMessagesProps) {
     scrollDistance,
   } = useChatUI<HTMLDivElement>();
 
-  const unreadCount = useNewMessagesCounter(messages, isAtBottom, scrollDistance);
+  const unreadCount = useNewMessagesCounter(
+    messages,
+    isAtBottom,
+    scrollDistance,
+  );
 
   // Track loading state
   useEffect(() => {
@@ -48,24 +53,44 @@ export function ChatMessages({ className }: ChatMessagesProps) {
   }
 
   return (
-    <div className={`relative flex h-full w-full flex-col overflow-hidden px-2 ${className || ''}`}>
-
+    <div
+      className={`relative flex h-full w-full flex-col overflow-hidden px-2 ${className || ''}`}
+    >
       {/* Messages container */}
       <div
         ref={listRef}
-        className="h-full w-full flex flex-col gap-2 overflow-y-auto py-2 pr-0"
+        className="flex h-full w-full flex-col gap-2 overflow-y-auto py-2 pt-16 pr-0 pb-18"
       >
         <ChatLoadMoreButton
           onLoadMore={loadOlderMessages}
           isLoading={isLoadingMore}
           hasMore={hasMoreMessages}
         />
-        
+
         <ChatMessageList
           messages={messages}
           currentWallet={currentUser?.wallet}
         />
       </div>
+
+      {/* Progressive blur at the top */}
+      <ProgressiveBlur
+        className="pointer-events-none absolute top-10 left-0 h-10 w-full"
+        direction="top"
+        blurIntensity={0.5}
+        blurLayers={4}
+      />
+
+      {/* white gradient at top */}
+      <div className="pointer-events-none absolute top-10 left-0 h-10 w-full bg-gradient-to-b from-white to-white/0"></div>
+
+      {/* Progressive blur at the bottom */}
+      <ProgressiveBlur
+        className="pointer-events-none absolute bottom-0 left-0 h-20 w-full"
+        direction="bottom"
+        blurIntensity={1}
+        blurLayers={8}
+      />
 
       {/* Scroll to bottom button */}
       <ChatScrollToBottom

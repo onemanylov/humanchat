@@ -40,6 +40,7 @@
     "jose": "^6.0.12",
     "lingui-ai": "^1.2.7",
     "lucide-react": "^0.542.0",
+    "motion": "^12.23.22",
     "next": "15.4.6",
     "partykit": "^0.0.115",
     "partysocket": "^1.0.1",

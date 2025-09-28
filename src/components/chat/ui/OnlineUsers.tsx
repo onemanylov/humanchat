@@ -10,7 +10,15 @@ interface OnlineUsersProps {
   className?: string;
 }
 
-function UserAvatar({ user, size = 32, className }: { user: OnlineUser; size?: number; className?: string }) {
+function UserAvatar({
+  user,
+  size = 32,
+  className,
+}: {
+  user: OnlineUser;
+  size?: number;
+  className?: string;
+}) {
   const seed = user.wallet || 'anonymous';
 
   if (user.profilePictureUrl) {
@@ -21,7 +29,7 @@ function UserAvatar({ user, size = 32, className }: { user: OnlineUser; size?: n
         width={size}
         height={size}
         className={cn(
-          'shrink-0 rounded-full object-cover border-2 border-white',
+          'shrink-0 rounded-full border-2 border-white object-cover',
           className,
         )}
         style={{ width: size, height: size }}
@@ -34,10 +42,7 @@ function UserAvatar({ user, size = 32, className }: { user: OnlineUser; size?: n
     <MeshAvatar
       seed={seed}
       size={size}
-      className={cn(
-        'border-2 border-white',
-        className,
-      )}
+      className={cn('border-2 border-white', className)}
       style={{ width: size, height: size }}
     />
   );
@@ -61,15 +66,15 @@ export default function OnlineUsers({ users, className }: OnlineUsersProps) {
             className="relative"
             style={{ zIndex: displayUsers.length - index }}
           >
-            <UserAvatar 
-              user={user} 
-              size={32}
-              className="hover:scale-105 transition-transform"
+            <UserAvatar
+              user={user}
+              size={28}
+              className="transition-transform hover:scale-105"
             />
           </div>
         ))}
       </div>
-      
+
       {/* Additional count */}
       {additionalCount > 0 && (
         <div className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-600">
