@@ -13,12 +13,12 @@ export default function SignInButton() {
     router.refresh();
   };
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex w-full flex-col items-center gap-1">
       <button
         onClick={onClick}
-        className="flex h-10 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-4 text-sm font-medium transition-colors hover:border-transparent hover:bg-[#f2f2f2] sm:h-12 sm:w-auto sm:px-5 sm:text-base"
+        className="flex h-[60px] w-full items-center justify-center rounded-full bg-black px-6 text-lg font-semibold text-white ring-[1px] ring-blue-400/5 transition-colors sm:h-[72px] sm:w-auto sm:px-8 sm:text-xl"
       >
-        Sign in with Wallet
+        Login with wallet
       </button>
       {isMockAuthEnabled() && (
         <span className="text-xs text-neutral-500">mock mode enabled</span>

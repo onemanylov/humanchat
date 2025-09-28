@@ -3,19 +3,17 @@ import SignInButton from '~/components/SignInButton';
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-screen grid-rows-[20px_1fr_20px] items-center justify-items-center gap-16 p-8 pb-20 font-sans sm:p-20">
-      <main className="row-start-2 flex flex-col items-center gap-[32px] sm:items-start">
-        <Image
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <div className="flex flex-col items-center gap-4 sm:flex-row">
+    <div>
+      <main className="relative z-10 row-start-2 flex h-screen flex-col items-center justify-end gap-[32px]">
+        <div className="absolute top-1/2 left-1/2 flex size-[300px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-2">
+          <Image src="/logo.webp" alt="Logo" width={250} height={250} />
+        </div>
+        <div className="flex w-full flex-col items-center gap-4 px-8 pb-4 sm:flex-row">
           <SignInButton />
         </div>
       </main>
+
+      {/* <DitheringBackground /> */}
     </div>
   );
 }
