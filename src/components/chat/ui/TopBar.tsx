@@ -13,7 +13,6 @@ interface TopBarProps {
   className?: string;
 }
 
-
 function formatDisplayName(user: OnlineUser): string {
   if (user.username) {
     return user.username;
@@ -22,7 +21,26 @@ function formatDisplayName(user: OnlineUser): string {
   return `${user.wallet.slice(0, 6)}...${user.wallet.slice(-4)}`;
 }
 
-export default function TopBar({ onlineUsers = [], className }: TopBarProps) {
+const mockUsers = [
+  {
+    wallet: '0x1234567890123456789012345678901234567890',
+    username: 'jenny30',
+  },
+  {
+    wallet: '0x2345678901234567890123456789012345678901',
+    username: 'atom',
+  },
+  {
+    wallet: '0x3456789012345678901234567890123456789012',
+    username: 'natab.3203',
+  },
+];
+
+export default function TopBar({
+  onlineUsers: users = [],
+  className,
+}: TopBarProps) {
+  const onlineUsers = [...users, ...mockUsers];
   const displayUsers = onlineUsers.slice(0, 3); // Show avatars for first 3 users
   const additionalCount = Math.max(0, onlineUsers.length - 3);
   const hasMultipleUsers = onlineUsers.length > 1;
