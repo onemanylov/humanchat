@@ -146,7 +146,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
-  const [messageRevision, setMessageRevision] = useState(0);
+  const [, setMessageRevision] = useState(0);
 
   const bumpMessageRevision = useCallback(() => {
     setMessageRevision((prev) => prev + 1);
@@ -214,10 +214,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [rateLimit]);
 
   // Calculate remaining seconds for rate limit
-  const remainingSeconds = React.useMemo(() => {
-    if (!rateLimit) return 0;
-    return Math.max(0, Math.ceil((rateLimit.retryAt - Date.now()) / 1000));
-  }, [rateLimit]);
+  const remainingSeconds = !rateLimit
+    ? 0
+    : Math.max(0, Math.ceil((rateLimit.retryAt - Date.now()) / 1000));
 
   // WebSocket event handler
   const handleWebSocketEvent = useCallback(
@@ -433,19 +432,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [bumpMessageRevision, isLoadingMore, utils.chat.loadMore]);
 
   // Get current messages
-  const messages = React.useMemo(() => {
-    return messageService.current?.getSortedMessages() ?? [];
-  }, [messageRevision]);
+  const messages = messageService.current?.getSortedMessages() ?? [];
 
-  const messagesData = React.useMemo(() => {
-    return (
-      messageService.current?.getCurrentData() ?? {
-        messages: [],
-        hasMore: false,
-        oldestTimestamp: undefined,
-      }
-    );
-  }, [messageRevision]);
+  const messagesData =
+    messageService.current?.getCurrentData() ?? {
+      messages: [],
+      hasMore: false,
+      oldestTimestamp: undefined,
+    };
 
   const contextValue: ChatContextType = {
     // Messages
