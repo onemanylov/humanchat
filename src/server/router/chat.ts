@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { publicProcedure, router } from '~/server/trpc';
+import { protectedProcedure, publicProcedure, router } from '~/server/trpc';
 import {
   fetchInitialMessages,
   fetchMessagesBefore,
 } from '~/server/chat';
+import { createSessionToken } from '~/lib/auth';
 
 const limitSchema = z
   .number()
@@ -30,4 +31,13 @@ export const chatRouter = router({
     .query(async ({ input }) => {
       return fetchMessagesBefore(input.beforeTimestamp, input.limit);
     }),
+  connectionToken: protectedProcedure.query(async ({ ctx }) => {
+    const session = ctx.session!;
+    const token = await createSessionToken({
+      wallet: session.wallet,
+      username: session.username ?? null,
+    });
+
+    return { token };
+  }),
 });

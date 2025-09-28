@@ -128,6 +128,7 @@ export default class ChatServer implements Party.Server {
 
     const chatMessage: ChatMessage = {
       id: crypto.randomUUID(),
+      clientId: parsed.clientId ?? undefined,
       text,
       wallet: connection.wallet,
       username: parsed.username ?? null,

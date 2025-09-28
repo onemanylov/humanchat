@@ -58,7 +58,7 @@ async function redisPipeline(
       'Content-Type': 'application/json',
       'User-Agent': USER_AGENT,
     },
-    body: JSON.stringify({ commands }),
+    body: JSON.stringify(commands),
   });
 
   if (!res.ok) {
