@@ -47,8 +47,13 @@ export function ChatInput({ className, onValidationChange }: ChatInputProps) {
     });
   }, [validation.showLengthError, validation.errorMessage, onValidationChange]);
 
-  const handleSend = async () => {
+  const handleSend = async (event?: React.MouseEvent | React.KeyboardEvent) => {
     if (!validation.canSend) return;
+    
+    // Prevent default behavior to keep keyboard open on iOS Safari
+    if (event) {
+      event.preventDefault();
+    }
     
     const success = await sendMessage(inputValue.trim());
     if (success) {
@@ -59,7 +64,7 @@ export function ChatInput({ className, onValidationChange }: ChatInputProps) {
   const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = async (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      await handleSend();
+      await handleSend(event);
     }
   };
 

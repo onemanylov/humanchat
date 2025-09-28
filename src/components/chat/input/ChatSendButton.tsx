@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 
 export type ChatSendButtonProps = {
-  onClick: () => void;
+  onClick: (event: React.MouseEvent) => void;
   disabled?: boolean;
   className?: string;
   hasContent?: boolean;

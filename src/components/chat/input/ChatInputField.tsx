@@ -8,7 +8,7 @@ export type ChatInputFieldProps = {
   value: string;
   onChange: (value: string) => void;
   onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement>;
-  onSend?: () => void;
+  onSend?: (event?: React.MouseEvent) => void;
   placeholder?: string;
   disabled?: boolean;
   isRateLimited?: boolean;
@@ -70,6 +70,19 @@ export function ChatInputField({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Maintain focus to keep keyboard open (especially on iOS)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea && value === '' && document.activeElement === textarea) {
+      // Re-focus the textarea after a brief delay to ensure keyboard stays open
+      // This is particularly important on iOS where clearing input can dismiss the keyboard
+      const timeoutId = setTimeout(() => {
+        textarea.focus();
+      }, 10);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [value]);
+
   return (
     <div className="relative flex items-end">
       <textarea
@@ -80,6 +93,7 @@ export function ChatInputField({
         placeholder={effectivePlaceholder}
         disabled={isDisabled}
         rows={1}
+        autoFocus={!isDisabled}
         style={{
           minHeight: '44px', // Ensure minimum height for consistency
           lineHeight: '1.5',
@@ -94,7 +108,7 @@ export function ChatInputField({
       {onSend && (
         <div className="absolute right-2 bottom-1.5">
           <ChatSendButton 
-            onClick={onSend} 
+            onClick={(event) => onSend(event)} 
             disabled={!canSend || isDisabled}
             hasContent={value.trim().length > 0}
           />
