@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { trpc } from '~/trpc/react';
-import type { ChatMessage } from '~/lib/chat/types';
+import type { ChatMessage, OnlineUser } from '~/lib/chat/types';
 import { ChatWebSocketService, type WebSocketConnectionState } from '~/lib/chat/services/ChatWebSocketService';
 import { ChatMessageService } from '~/lib/chat/services/ChatMessageService';
 import { 
@@ -64,6 +64,10 @@ export type ChatContextType = {
   } | null;
   isUserLoading: boolean;
   
+  // Online users
+  onlineUsers: OnlineUser[];
+  isOnlineUsersLoading: boolean;
+  
   // Rate limiting
   rateLimit: RateLimitEvent | null;
   remainingSeconds: number;
@@ -106,6 +110,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     },
   );
 
+  const onlineUsersQuery = trpc.chat.onlineUsers.useQuery(undefined, {
+    staleTime: 1_000 * 30, // 30 seconds
+    refetchInterval: 1_000 * 60, // Refetch every minute as fallback
+    refetchOnWindowFocus: false,
+  });
+
+  const updateActivityMutation = trpc.chat.updateActivity.useMutation();
+
   // Services
   const webSocketService = useRef<ChatWebSocketService | null>(null);
   const messageService = useRef<ChatMessageService | null>(null);
@@ -117,6 +129,36 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [banStatus, setBanStatus] = useState<BanStatus | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+
+  // Track user activity on page load and when user data is available
+  useEffect(() => {
+    if (userQuery.data?.user && !updateActivityMutation.isLoading) {
+      updateActivityMutation.mutate();
+    }
+  }, [userQuery.data?.user]);
+
+  // Initialize online users - add current user to the list
+  useEffect(() => {
+    const baseUsers = onlineUsersQuery.data || [];
+    const currentUser = userQuery.data?.user;
+    
+    if (currentUser) {
+      // Always show current user as online
+      const userExists = baseUsers.some(user => user.wallet === currentUser.wallet);
+      if (!userExists) {
+        setOnlineUsers([...baseUsers, {
+          wallet: currentUser.wallet,
+          username: currentUser.username,
+          profilePictureUrl: currentUser.profilePictureUrl,
+        }]);
+      } else {
+        setOnlineUsers(baseUsers);
+      }
+    } else {
+      setOnlineUsers(baseUsers);
+    }
+  }, [onlineUsersQuery.data, userQuery.data?.user]);
 
   // Initialize services
   useEffect(() => {
@@ -290,6 +332,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsSending(true);
 
+      // Update user activity when sending a message
+      updateActivityMutation.mutate();
+
       // Create message payload with token
       const payload = createChatMessagePayload(validatedText, user, token);
       
@@ -313,7 +358,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsSending(false);
     }
-  }, [userQuery.data?.user, tokenQuery.data?.token, rateLimit, isSending]);
+  }, [userQuery.data?.user, tokenQuery.data?.token, rateLimit, isSending, updateActivityMutation]);
 
   // Load older messages function
   const loadOlderMessages = useCallback(async (): Promise<boolean> => {
@@ -354,6 +399,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     // User
     currentUser: userQuery.data?.user ?? null,
     isUserLoading: userQuery.isLoading || tokenQuery.isLoading,
+    
+    // Online users
+    onlineUsers,
+    isOnlineUsersLoading: onlineUsersQuery.isLoading,
     
     // Rate limiting
     rateLimit,

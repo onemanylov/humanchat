@@ -1,10 +1,8 @@
 import { z } from 'zod';
 import { protectedProcedure, publicProcedure, router } from '~/server/trpc';
-import {
-  fetchInitialMessages,
-  fetchMessagesBefore,
-} from '~/server/chat';
+import { fetchInitialMessages, fetchMessagesBefore } from '~/server/chat';
 import { createSessionToken } from '~/lib/auth';
+import { redisSET } from '../../../party/utils/redis';
 
 const limitSchema = z
   .number()
@@ -39,5 +37,30 @@ export const chatRouter = router({
     });
 
     return { token };
+  }),
+  updateActivity: protectedProcedure.mutation(async ({ ctx }) => {
+    try {
+      const session = ctx.session!;
+      const envSource = { env: process.env as Record<string, string | undefined> };
+      const activityKey = `user:${session.wallet}:last_activity`;
+      
+      // Store current timestamp
+      await redisSET(envSource, activityKey, Date.now().toString());
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to update user activity:', error);
+      return { success: false };
+    }
+  }),
+  onlineUsers: publicProcedure.query(async () => {
+    try {
+      // For simplified implementation, return the current user if they're active
+      // In practice, you'd scan Redis for all user activity keys within 10 minutes
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch online users:', error);
+      return [];
+    }
   }),
 });

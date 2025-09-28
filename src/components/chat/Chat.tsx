@@ -7,9 +7,10 @@ import { ChatInput } from './input/ChatInput';
 import { ChatRateLimitBanner } from './ui/ChatRateLimitBanner';
 import { ChatPillContainer } from './ui/ChatPillContainer';
 import { ChatValidationPill } from './ui/ChatValidationPill';
+import TopBar from './ui/TopBar';
 
 export default function Chat() {
-  const { rateLimit, remainingSeconds } = useChat();
+  const { rateLimit, remainingSeconds, onlineUsers } = useChat();
   const [inputValidation, setInputValidation] = React.useState<{
     showLengthError: boolean;
     errorMessage: string | null;
@@ -17,6 +18,7 @@ export default function Chat() {
 
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground">
+      <TopBar onlineUsers={onlineUsers} />
       <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden">
         <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
           <ChatMessages />

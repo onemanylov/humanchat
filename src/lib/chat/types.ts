@@ -32,3 +32,9 @@ export type ChatUserBannedEnvelope = {
   isTemporary: boolean;
   expiresAt?: number;
 };
+
+export type OnlineUser = {
+  wallet: string;
+  username: string | null;
+  profilePictureUrl: string | null;
+};
