@@ -41,7 +41,7 @@ export function useChatConnection(options: ConnectionOptions = {}): ChatConnecti
   const { messages, isLoadingMore, hasMoreMessages, loadOlderMessages, addMessage, isInitialLoading } =
     useChatMessages();
 
-  const rateLimitHandler = useRef<ConnectionOptions['onRateLimit']>();
+  const rateLimitHandler = useRef<ConnectionOptions['onRateLimit']>(undefined);
   rateLimitHandler.current = options.onRateLimit;
 
   const tokenQuery = trpc.chat.connectionToken.useQuery(undefined, {

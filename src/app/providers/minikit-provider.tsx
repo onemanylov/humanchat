@@ -8,11 +8,13 @@ export default function MiniKitRootProvider({
   children: React.ReactNode;
 }) {
   const appId = process.env.NEXT_PUBLIC_WORLD_ID_APP_ID;
-  
+
   if (!appId) {
-    console.warn('NEXT_PUBLIC_WORLD_ID_APP_ID not provided. MiniKit features may not work properly.');
+    console.warn(
+      'NEXT_PUBLIC_WORLD_ID_APP_ID not provided. MiniKit features may not work properly.',
+    );
     return <>{children}</>;
   }
 
-  return <MiniKitProvider appId={appId}>{children}</MiniKitProvider>;
+  return <MiniKitProvider props={{ appId }}>{children}</MiniKitProvider>;
 }

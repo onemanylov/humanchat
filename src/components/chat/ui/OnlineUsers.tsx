@@ -43,7 +43,6 @@ function UserAvatar({
       seed={seed}
       size={size}
       className={cn('border-2 border-white', className)}
-      style={{ width: size, height: size }}
     />
   );
 }

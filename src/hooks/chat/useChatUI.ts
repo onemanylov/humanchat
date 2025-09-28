@@ -122,7 +122,7 @@ export function useChatUI<T extends HTMLElement = HTMLDivElement>(): ChatUIState
   }, []);
 
   return {
-    listRef: listRef as React.RefObject<HTMLDivElement>,
+    listRef: listRef as unknown as React.RefObject<HTMLDivElement>,
     isAtBottom,
     scrollDistance,
     scrollToBottom: handleScrollToBottom,

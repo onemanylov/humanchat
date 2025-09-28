@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import type { ChatMessage } from '~/lib/chat/types';
 import { ChatMessageRow } from './ChatMessage';
-import { useChatAutoScroll } from '~/hooks';
+import { useChatAutoScroll } from '~/hooks/chat/useChatAutoScroll';
 import { useNewMessagesCounter } from '~/hooks/chat/useNewMessagesCounter';
 
 export type ChatMessagesProps = {

@@ -13,11 +13,11 @@ export type ChatMessageAvatarProps = {
   className?: string;
 };
 
-export function ChatMessageAvatar({ 
-  message, 
-  isOwn, 
-  size = 36, 
-  className 
+export function ChatMessageAvatar({
+  message,
+  isOwn,
+  size = 36,
+  className,
 }: ChatMessageAvatarProps) {
   const seed = message.wallet || 'anonymous';
   const displayName = formatDisplayName(message);
@@ -31,7 +31,7 @@ export function ChatMessageAvatar({
         height={size}
         className={cn(
           'shrink-0 rounded-full object-cover',
-          `h-${Math.floor(size/4)} w-${Math.floor(size/4)}`, // Tailwind sizing
+          `h-${Math.floor(size / 4)} w-${Math.floor(size / 4)}`, // Tailwind sizing
           isOwn && 'order-2',
           className,
         )}
@@ -46,11 +46,10 @@ export function ChatMessageAvatar({
       seed={seed}
       size={size}
       className={cn(
-        `h-${Math.floor(size/4)} w-${Math.floor(size/4)}`,
+        `h-${Math.floor(size / 4)} w-${Math.floor(size / 4)}`,
         isOwn && 'order-2',
         className,
       )}
-      style={{ width: size, height: size }}
     />
   );
 }

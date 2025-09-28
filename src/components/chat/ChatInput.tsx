@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import type PartySocket from 'partysocket';
 import { cn } from '~/lib/utils';
 import type { ChatMessage } from '~/lib/chat/types';
-import { useSendMessage } from '~/hooks';
+import { useSendMessage } from '~/hooks/chat/useSendMessage';
 
 export type ChatInputProps = {
   socket: PartySocket | null;

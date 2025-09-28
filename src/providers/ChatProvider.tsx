@@ -1,16 +1,30 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from 'react';
 import { trpc } from '~/trpc/react';
 import type { ChatMessage, OnlineUser } from '~/lib/chat/types';
-import { ChatWebSocketService, type WebSocketConnectionState } from '~/lib/chat/services/ChatWebSocketService';
+import type { SelectUser } from '~/db/schema';
+import {
+  ChatWebSocketService,
+  type WebSocketConnectionState,
+} from '~/lib/chat/services/ChatWebSocketService';
 import { ChatMessageService } from '~/lib/chat/services/ChatMessageService';
-import { 
-  createChatMessagePayload, 
+import {
+  createChatMessagePayload,
   createOptimisticMessage,
   type IncomingWebSocketEvent,
 } from '~/lib/chat/utils/websocket-events';
-import { validateMessageText, canSendMessage } from '~/lib/chat/utils/message-validation';
+import {
+  validateMessageText,
+  canSendMessage,
+} from '~/lib/chat/utils/message-validation';
 import { CHAT_CONFIG } from '~/lib/chat/constants';
 
 // Rate limit event type
@@ -51,11 +65,11 @@ export type ChatContextType = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
   hasMoreMessages: boolean;
-  
+
   // Connection
   connectionState: WebSocketConnectionState;
   isConnected: boolean;
-  
+
   // User
   currentUser: {
     wallet: string;
@@ -63,23 +77,23 @@ export type ChatContextType = {
     profilePictureUrl: string | null;
   } | null;
   isUserLoading: boolean;
-  
+
   // Online users
   onlineUsers: OnlineUser[];
   isOnlineUsersLoading: boolean;
-  
+
   // Rate limiting
   rateLimit: RateLimitEvent | null;
   remainingSeconds: number;
-  
+
   // Moderation
   moderationWarning: ModerationWarningEvent | null;
   banStatus: BanStatus | null;
-  
+
   // Actions
   sendMessage: (text: string) => Promise<boolean>;
   loadOlderMessages: () => Promise<boolean>;
-  
+
   // State
   isSending: boolean;
 };
@@ -88,20 +102,20 @@ const ChatContext = createContext<ChatContextType | null>(null);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const utils = trpc.useUtils();
-  
+
   // tRPC queries
   const userQuery = trpc.auth.me.useQuery(undefined, {
     staleTime: 1_000 * 30,
     refetchOnWindowFocus: false,
   });
-  
+
   const tokenQuery = trpc.chat.connectionToken.useQuery(undefined, {
     staleTime: 1_000 * 60 * 5,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     enabled: !!userQuery.data?.user,
   });
-  
+
   const initialMessages = trpc.chat.initialMessages.useQuery(
     { limit: CHAT_CONFIG.INITIAL_MESSAGES_LIMIT },
     {
@@ -121,11 +135,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Services
   const webSocketService = useRef<ChatWebSocketService | null>(null);
   const messageService = useRef<ChatMessageService | null>(null);
-  
+
   // State
-  const [connectionState, setConnectionState] = useState<WebSocketConnectionState>('disconnected');
+  const [connectionState, setConnectionState] =
+    useState<WebSocketConnectionState>('disconnected');
   const [rateLimit, setRateLimit] = useState<RateLimitEvent | null>(null);
-  const [moderationWarning, setModerationWarning] = useState<ModerationWarningEvent | null>(null);
+  const [moderationWarning, setModerationWarning] =
+    useState<ModerationWarningEvent | null>(null);
   const [banStatus, setBanStatus] = useState<BanStatus | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -133,7 +149,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   // Track user activity on page load and when user data is available
   useEffect(() => {
-    if (userQuery.data?.user && !updateActivityMutation.isLoading) {
+    if (userQuery.data?.user && !updateActivityMutation.isPending) {
       updateActivityMutation.mutate();
     }
   }, [userQuery.data?.user]);
@@ -141,17 +157,23 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Initialize online users - add current user to the list
   useEffect(() => {
     const baseUsers = onlineUsersQuery.data || [];
-    const currentUser = userQuery.data?.user;
-    
-    if (currentUser) {
+    const user: SelectUser | null | undefined = userQuery.data?.user;
+
+    if (user) {
       // Always show current user as online
-      const userExists = baseUsers.some(user => user.wallet === currentUser.wallet);
+      const currentUserWallet = (user as any).wallet;
+      const userExists = baseUsers.some(
+        (u: OnlineUser) => u.wallet === currentUserWallet,
+      );
       if (!userExists) {
-        setOnlineUsers([...baseUsers, {
-          wallet: currentUser.wallet,
-          username: currentUser.username,
-          profilePictureUrl: currentUser.profilePictureUrl,
-        }]);
+        setOnlineUsers([
+          ...baseUsers,
+          {
+            wallet: currentUserWallet,
+            username: (user as any).username,
+            profilePictureUrl: (user as any).profilePictureUrl,
+          },
+        ]);
       } else {
         setOnlineUsers(baseUsers);
       }
@@ -175,13 +197,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Handle rate limit timing
   useEffect(() => {
     if (!rateLimit) return;
-    
+
     const timeout = rateLimit.retryAt - Date.now();
     if (timeout <= 0) {
       setRateLimit(null);
       return;
     }
-    
+
     const timer = setTimeout(() => setRateLimit(null), timeout);
     return () => clearTimeout(timer);
   }, [rateLimit]);
@@ -193,67 +215,70 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [rateLimit]);
 
   // WebSocket event handler
-  const handleWebSocketEvent = useCallback((event: IncomingWebSocketEvent) => {
-    const currentUser = userQuery.data?.user;
-    
-    switch (event.type) {
-      case 'chat:new':
-        if (event.message && messageService.current) {
-          messageService.current.addMessage(event.message);
-        }
-        break;
-      case 'chat:message:deleted':
-        if (messageService.current) {
-          messageService.current.removeMessage(event.messageId);
-        }
-        break;
-      case 'chat:user:warned':
-        // Only show warning for current user
-        if (currentUser?.wallet === event.wallet) {
-          setModerationWarning(event);
-          // Clear warning after 10 seconds
-          setTimeout(() => setModerationWarning(null), 10000);
-        }
-        break;
-      case 'chat:user:banned':
-        // Only show ban for current user
-        if (currentUser?.wallet === event.wallet) {
-          const newBanStatus: BanStatus = {
+  const handleWebSocketEvent = useCallback(
+    (event: IncomingWebSocketEvent) => {
+      const currentUser = userQuery.data?.user;
+
+      switch (event.type) {
+        case 'chat:new':
+          if (event.message && messageService.current) {
+            messageService.current.addMessage(event.message);
+          }
+          break;
+        case 'chat:message:deleted':
+          if (messageService.current) {
+            messageService.current.removeMessage(event.messageId);
+          }
+          break;
+        case 'chat:user:warned':
+          // Only show warning for current user
+          if (currentUser?.wallet === event.wallet) {
+            setModerationWarning(event);
+            // Clear warning after 10 seconds
+            setTimeout(() => setModerationWarning(null), 10000);
+          }
+          break;
+        case 'chat:user:banned':
+          // Only show ban for current user
+          if (currentUser?.wallet === event.wallet) {
+            const newBanStatus: BanStatus = {
+              isBanned: true,
+              isTemporary: event.isTemporary,
+              reason: event.reason,
+              expiresAt: event.expiresAt,
+            };
+            setBanStatus(newBanStatus);
+            // Refetch user data to update ban status from server
+            userQuery.refetch();
+          }
+          break;
+        case 'error:rateLimit':
+          setRateLimit(event);
+          break;
+        case 'error:banned':
+          // Handle ban error from server
+          const banStatusFromError: BanStatus = {
             isBanned: true,
-            isTemporary: event.isTemporary,
+            isTemporary: event.isTemporary || false,
             reason: event.reason,
             expiresAt: event.expiresAt,
           };
-          setBanStatus(newBanStatus);
+          setBanStatus(banStatusFromError);
           // Refetch user data to update ban status from server
           userQuery.refetch();
-        }
-        break;
-      case 'error:rateLimit':
-        setRateLimit(event);
-        break;
-      case 'error:banned':
-        // Handle ban error from server
-        const banStatusFromError: BanStatus = {
-          isBanned: true,
-          isTemporary: event.isTemporary || false,
-          reason: event.reason,
-          expiresAt: event.expiresAt,
-        };
-        setBanStatus(banStatusFromError);
-        // Refetch user data to update ban status from server
-        userQuery.refetch();
-        break;
-      case 'error:validation':
-        console.warn('Chat validation error:', event.message);
-        break;
-    }
-  }, [userQuery.data?.user]);
+          break;
+        case 'error:validation':
+          console.warn('Chat validation error:', event.message);
+          break;
+      }
+    },
+    [userQuery.data?.user],
+  );
 
   // Manage WebSocket connection
   useEffect(() => {
     const token = tokenQuery.data?.token;
-    
+
     if (!token) {
       if (webSocketService.current) {
         webSocketService.current.disconnect();
@@ -273,10 +298,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       try {
         await webSocketService.current!.connect(token);
         setConnectionState('connected');
-        
+
         // Add event listener
-        const removeListener = webSocketService.current!.addEventListener(handleWebSocketEvent);
-        
+        const removeListener =
+          webSocketService.current!.addEventListener(handleWebSocketEvent);
+
         return removeListener;
       } catch (error) {
         console.error('WebSocket connection failed:', error);
@@ -286,8 +312,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
 
     let removeListener: (() => void) | null = null;
-    
-    connectAndListen().then(cleanup => {
+
+    connectAndListen().then((cleanup) => {
       removeListener = cleanup;
     });
 
@@ -307,58 +333,74 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [tokenQuery.data?.token, handleWebSocketEvent]);
 
   // Send message function
-  const sendMessage = useCallback(async (text: string): Promise<boolean> => {
-    const user = userQuery.data?.user;
-    const token = tokenQuery.data?.token;
-    
-    if (!user || !token || !webSocketService.current || !messageService.current) {
-      return false;
-    }
+  const sendMessage = useCallback(
+    async (text: string): Promise<boolean> => {
+      const user = userQuery.data?.user;
+      const token = tokenQuery.data?.token;
 
-    const validatedText = validateMessageText(text);
-    if (!validatedText) {
-      return false;
-    }
-
-    if (!canSendMessage(
-      validatedText,
-      webSocketService.current.isConnected(),
-      !!rateLimit,
-      isSending,
-    )) {
-      return false;
-    }
-
-    try {
-      setIsSending(true);
-
-      // Update user activity when sending a message
-      updateActivityMutation.mutate();
-
-      // Create message payload with token
-      const payload = createChatMessagePayload(validatedText, user, token);
-      
-      // Add optimistic message
-      const optimisticMessage = createOptimisticMessage(payload);
-      messageService.current.addMessage(optimisticMessage);
-
-      // Send via WebSocket
-      const success = webSocketService.current.sendMessage(payload);
-      
-      if (!success) {
-        // Remove optimistic message on failure
-        messageService.current.removeMessage(payload.clientId);
+      if (
+        !user ||
+        !token ||
+        !webSocketService.current ||
+        !messageService.current
+      ) {
         return false;
       }
 
-      return true;
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      return false;
-    } finally {
-      setIsSending(false);
-    }
-  }, [userQuery.data?.user, tokenQuery.data?.token, rateLimit, isSending, updateActivityMutation]);
+      const validatedText = validateMessageText(text);
+      if (!validatedText) {
+        return false;
+      }
+
+      if (
+        !canSendMessage(
+          validatedText,
+          webSocketService.current.isConnected(),
+          !!rateLimit,
+          isSending,
+        )
+      ) {
+        return false;
+      }
+
+      try {
+        setIsSending(true);
+
+        // Update user activity when sending a message
+        updateActivityMutation.mutate();
+
+        // Create message payload with token
+        const payload = createChatMessagePayload(validatedText, user, token);
+
+        // Add optimistic message
+        const optimisticMessage = createOptimisticMessage(payload);
+        messageService.current.addMessage(optimisticMessage);
+
+        // Send via WebSocket
+        const success = webSocketService.current.sendMessage(payload);
+
+        if (!success) {
+          // Remove optimistic message on failure
+          messageService.current.removeMessage(payload.clientId);
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        return false;
+      } finally {
+        setIsSending(false);
+      }
+    },
+    [
+      userQuery.data?.user,
+      tokenQuery.data?.token,
+      rateLimit,
+      isSending,
+      updateActivityMutation,
+    ],
+  );
 
   // Load older messages function
   const loadOlderMessages = useCallback(async (): Promise<boolean> => {
@@ -368,8 +410,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoadingMore(true);
     try {
-      const result = await messageService.current.loadOlderMessages(
-        (params) => utils.chat.loadMore.fetch(params)
+      const result = await messageService.current.loadOlderMessages((params) =>
+        utils.chat.loadMore.fetch(params),
       );
       return result.success;
     } finally {
@@ -391,39 +433,37 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     isInitialLoading: initialMessages.isLoading,
     isLoadingMore,
     hasMoreMessages: messagesData.hasMore,
-    
+
     // Connection
     connectionState,
     isConnected: connectionState === 'connected',
-    
+
     // User
     currentUser: userQuery.data?.user ?? null,
     isUserLoading: userQuery.isLoading || tokenQuery.isLoading,
-    
+
     // Online users
     onlineUsers,
     isOnlineUsersLoading: onlineUsersQuery.isLoading,
-    
+
     // Rate limiting
     rateLimit,
     remainingSeconds,
-    
+
     // Moderation
     moderationWarning,
     banStatus,
-    
+
     // Actions
     sendMessage,
     loadOlderMessages,
-    
+
     // State
     isSending,
   };
 
   return (
-    <ChatContext.Provider value={contextValue}>
-      {children}
-    </ChatContext.Provider>
+    <ChatContext.Provider value={contextValue}>{children}</ChatContext.Provider>
   );
 }
 

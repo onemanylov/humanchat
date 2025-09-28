@@ -47,7 +47,7 @@ export function ChatMessage({
       >
         {!isOwn && <ChatMessageAuthor message={message} />}
 
-        <ChatMessageContent text={message.text} isPending={message.pending} />
+        <ChatMessageContent text={message.text} />
 
         <ChatMessageTimestamp timestamp={message.ts} isOwn={isOwn} />
       </div>

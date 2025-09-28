@@ -21,7 +21,7 @@ export const chatRouter = router({
     .input(
       z.object({
         beforeTimestamp: z
-          .number({ invalid_type_error: 'beforeTimestamp must be a number' })
+          .number({ message: 'beforeTimestamp must be a number' })
           .int({ message: 'beforeTimestamp must be an integer' }),
         limit: limitSchema,
       }),
@@ -41,12 +41,14 @@ export const chatRouter = router({
   updateActivity: protectedProcedure.mutation(async ({ ctx }) => {
     try {
       const session = ctx.session!;
-      const envSource = { env: process.env as Record<string, string | undefined> };
+      const envSource = {
+        env: process.env as Record<string, string | undefined>,
+      };
       const activityKey = `user:${session.wallet}:last_activity`;
-      
+
       // Store current timestamp
       await redisSET(envSource, activityKey, Date.now().toString());
-      
+
       return { success: true };
     } catch (error) {
       console.error('Failed to update user activity:', error);

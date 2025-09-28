@@ -10,7 +10,12 @@ export type ChatBanBannerProps = {
   className?: string;
 };
 
-export function ChatBanBanner({ reason, isTemporary, expiresAt, className = '' }: ChatBanBannerProps) {
+export function ChatBanBanner({
+  reason,
+  isTemporary,
+  expiresAt,
+  className = '',
+}: ChatBanBannerProps) {
   const [remainingTime, setRemainingTime] = useState<string>('');
 
   useEffect(() => {
@@ -19,7 +24,7 @@ export function ChatBanBanner({ reason, isTemporary, expiresAt, className = '' }
     const updateRemainingTime = () => {
       const now = Date.now();
       const remaining = Math.max(0, expiresAt - now);
-      
+
       if (remaining <= 0) {
         setRemainingTime('0h 0m');
         return;
@@ -38,10 +43,13 @@ export function ChatBanBanner({ reason, isTemporary, expiresAt, className = '' }
 
   if (isTemporary) {
     return (
-      <div className={`rounded-lg border border-red-500/30 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm ${className}`}>
+      <div
+        className={`rounded-lg border border-red-500/30 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm ${className}`}
+      >
         <div className="flex items-center justify-center text-center">
           <div>
-            🚫 You've been banned for 24h due to repeated violations: {reason}.
+            🚫 You&apos;ve been banned for 24h due to repeated violations:{' '}
+            {reason}.
             {remainingTime && (
               <div className="mt-1 text-xs text-red-600">
                 Time remaining: {remainingTime}
@@ -54,12 +62,14 @@ export function ChatBanBanner({ reason, isTemporary, expiresAt, className = '' }
   }
 
   return (
-    <div className={`rounded-lg border border-red-600/50 bg-red-50 px-4 py-3 text-sm text-red-900 shadow-sm ${className}`}>
+    <div
+      className={`rounded-lg border border-red-600/50 bg-red-50 px-4 py-3 text-sm text-red-900 shadow-sm ${className}`}
+    >
       <div className="flex items-center justify-center text-center">
         <div>
           🚫 Your account has been permanently banned: {reason}.
           <div className="mt-2">
-            <a 
+            <a
               href={MODERATION_CONFIG.APPEAL_URL}
               target="_blank"
               rel="noopener noreferrer"

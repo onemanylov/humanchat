@@ -45,7 +45,7 @@ export function ChatMessages({ className }: ChatMessagesProps) {
 
   // Track message count changes
   useEffect(() => {
-    onItemsChange();
+    onItemsChange(messages.length);
   }, [messages.length, onItemsChange]);
 
   if (isInitialLoading) {
@@ -62,7 +62,9 @@ export function ChatMessages({ className }: ChatMessagesProps) {
         className="flex h-full w-full flex-col gap-2 overflow-y-auto py-2 pt-16 pr-0 pb-18"
       >
         <ChatLoadMoreButton
-          onLoadMore={loadOlderMessages}
+          onLoadMore={async () => {
+            await loadOlderMessages();
+          }}
           isLoading={isLoadingMore}
           hasMore={hasMoreMessages}
         />

@@ -76,8 +76,6 @@ export function useChatMessages(): UseChatMessagesReturn {
     },
   );
 
-  const loadMoreMutation = trpc.chat.loadMore.useMutation();
-
   const loadOlderMessages = useCallback(async () => {
     const current = ensureData(utils.chat.initialMessages.getData({ limit }));
 
@@ -87,7 +85,7 @@ export function useChatMessages(): UseChatMessagesReturn {
 
     setIsLoadingMore(true);
     try {
-      const result = await loadMoreMutation.mutateAsync({
+      const result = await utils.chat.loadMore.fetch({
         beforeTimestamp: current.oldestTimestamp,
         limit: CHAT_QUERY_CONFIG.PAGINATION_LIMIT,
       });
@@ -108,7 +106,7 @@ export function useChatMessages(): UseChatMessagesReturn {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, limit, loadMoreMutation, utils.chat.initialMessages]);
+  }, [isLoadingMore, limit, utils.chat.initialMessages]);
 
   const addMessage = useCallback(
     (message: ChatMessage) => {
