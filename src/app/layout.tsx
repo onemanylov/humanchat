@@ -67,18 +67,18 @@ export default function RootLayout({
         className={`${tiktokSans.variable} ${geistMono.variable} antialiased`}
       >
         <AppTRPCProvider>
-          {/* <ErudaProvider> */}
-          <AppI18nProvider>
-            <MiniKitRootProvider>
-              <ChatProvider>
-                <AppShell>
-                  {children}
-                  <DevMenu />
-                </AppShell>
-              </ChatProvider>
-            </MiniKitRootProvider>
-          </AppI18nProvider>
-          {/* </ErudaProvider> */}
+          <ErudaProvider>
+            <AppI18nProvider>
+              <MiniKitRootProvider>
+                <ChatProvider>
+                  <AppShell>
+                    {children}
+                    <DevMenu />
+                  </AppShell>
+                </ChatProvider>
+              </MiniKitRootProvider>
+            </AppI18nProvider>
+          </ErudaProvider>
         </AppTRPCProvider>
       </body>
     </html>

@@ -19,10 +19,6 @@ type ConnectionState = {
 };
 
 export default class ChatServer implements Party.Server {
-  readonly options: Party.ServerOptions = {
-    hibernate: true,
-  };
-
   private connections = new Map<string, ConnectionState>();
 
   constructor(readonly room: Party.Room) {}
@@ -32,40 +28,46 @@ export default class ChatServer implements Party.Server {
       const url = new URL(request.url);
 
       // 1) Privileged service path
-      const serviceSecret = url.searchParams.get("service_secret");
+      const serviceSecret = url.searchParams.get('service_secret');
       if (serviceSecret) {
         const expected = lobby.env.WEBSOCKET_SECRET as string | undefined;
         if (!expected || serviceSecret !== expected) {
-          return new Response("Unauthorized: invalid service_secret", { status: 401 });
+          return new Response('Unauthorized: invalid service_secret', {
+            status: 401,
+          });
         }
-        request.headers.set("X-Service", "true");
+        request.headers.set('X-Service', 'true');
         return request;
       }
 
       // 2) Regular users via token query param (?token=JWT) or cookie
-      const token = url.searchParams.get("token") ?? tokenFromRequest(request);
-      if (!token) return new Response("Unauthorized: missing token", { status: 401 });
+      const token = url.searchParams.get('token') ?? tokenFromRequest(request);
+      if (!token)
+        return new Response('Unauthorized: missing token', { status: 401 });
 
       const secret = lobby.env.JWT_SECRET as string | undefined;
-      if (!secret) return new Response("Server configuration error", { status: 401 });
+      if (!secret)
+        return new Response('Server configuration error', { status: 401 });
 
       const { payload } = await verifyJwtToken(token, secret);
-      if (!payload?.wallet) return new Response("Unauthorized: invalid payload", { status: 401 });
+      if (!payload?.wallet)
+        return new Response('Unauthorized: invalid payload', { status: 401 });
 
       // Store identity in request headers
-      if (payload.username) request.headers.set("X-Username", String(payload.username));
-      request.headers.set("X-Wallet", String(payload.wallet));
+      if (payload.username)
+        request.headers.set('X-Username', String(payload.username));
+      request.headers.set('X-Wallet', String(payload.wallet));
       return request;
     } catch (err) {
-      console.error("[onBeforeConnect] verify error", err);
-      return new Response("Unauthorized: verify error", { status: 401 });
+      console.error('[onBeforeConnect] verify error', err);
+      return new Response('Unauthorized: verify error', { status: 401 });
     }
   }
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
-    const isService = ctx.request.headers.get("X-Service") === "true";
-    const wallet = ctx.request.headers.get("X-Wallet");
-    const username = ctx.request.headers.get("X-Username");
+    const isService = ctx.request.headers.get('X-Service') === 'true';
+    const wallet = ctx.request.headers.get('X-Wallet');
+    const username = ctx.request.headers.get('X-Username');
 
     this.connections.set(conn.id, {
       isService,
@@ -94,9 +96,8 @@ export default class ChatServer implements Party.Server {
   private parseMessage(message: string) {
     const parsed = JSON.parse(message);
     const valid =
-      parsed?.type === 'chat:message' &&
-      typeof parsed.text === 'string';
-      // Note: token is now optional (for backward compatibility during migration)
+      parsed?.type === 'chat:message' && typeof parsed.text === 'string';
+    // Note: token is now optional (for backward compatibility during migration)
 
     return { parsed, valid };
   }
@@ -121,17 +122,21 @@ export default class ChatServer implements Party.Server {
     }
   }
 
-  private async handleChatMessage(parsed: any, sender: Party.Connection, connection: ConnectionState) {
+  private async handleChatMessage(
+    parsed: any,
+    sender: Party.Connection,
+    connection: ConnectionState,
+  ) {
     // 1) Identity comes from connection (stateful). NO per-message token anymore.
-    const effectiveWallet = (connection.wallet || "").toLowerCase();
+    const effectiveWallet = (connection.wallet || '').toLowerCase();
 
     // If client still sends token in messages, return protocol error
-    if (typeof parsed.token === "string") {
+    if (typeof parsed.token === 'string') {
       try {
         sender.send(
           JSON.stringify({
             type: 'error:protocol',
-            message: 'Per-message tokens are no longer supported'
+            message: 'Per-message tokens are no longer supported',
           }),
         );
       } catch (err) {
@@ -249,7 +254,7 @@ export default class ChatServer implements Party.Server {
       clientId: parsed.clientId ?? undefined,
       text,
       wallet: effectiveWallet || null,
-      username: connection.username ?? (parsed.username ?? null),
+      username: connection.username ?? parsed.username ?? null,
       profilePictureUrl: parsed.profilePictureUrl || null,
       ts: Date.now(),
     };

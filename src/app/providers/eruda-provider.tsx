@@ -8,7 +8,7 @@ export default function ErudaProvider({
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
+    // if (process.env.NODE_ENV !== 'development') return;
     (async () => {
       const eruda = (await import('eruda')).default;
       const g = globalThis as unknown as { __eruda_inited?: boolean };
