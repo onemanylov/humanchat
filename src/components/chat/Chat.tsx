@@ -29,7 +29,7 @@ export default function Chat() {
       </div>
 
       {/* Fixed floating input at bottom */}
-      <div className="fixed right-0 bottom-4 left-0 z-40">
+      <div className="fixed right-2 bottom-4 left-2 z-40">
         <ChatInput onValidationChange={setInputValidation} />
       </div>
 
