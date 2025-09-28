@@ -5,6 +5,7 @@ import MiniKitRootProvider from './providers/minikit-provider';
 import AppTRPCProvider from './providers/trpc-provider';
 import ErudaProvider from './providers/eruda-provider';
 import AppI18nProvider from './providers/i18n-provider';
+import { ChatProvider } from '~/providers/ChatProvider';
 import DevMenu from '~/components/DevMenu';
 import AppShell from './providers/app-shell';
 
@@ -37,10 +38,12 @@ export default function RootLayout({
           <ErudaProvider>
             <AppI18nProvider>
               <MiniKitRootProvider>
-                <AppShell>
-                  {children}
-                  <DevMenu />
-                </AppShell>
+                <ChatProvider>
+                  <AppShell>
+                    {children}
+                    <DevMenu />
+                  </AppShell>
+                </ChatProvider>
               </MiniKitRootProvider>
             </AppI18nProvider>
           </ErudaProvider>

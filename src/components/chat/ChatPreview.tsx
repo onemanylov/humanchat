@@ -2,6 +2,7 @@
 
 import type { ChatMessage } from '~/lib/chat/types';
 import { cn } from '~/lib/utils';
+import { formatMessageTime } from '~/lib/utils/date-formatting';
 export type ChatPreviewProps = {
   title?: string;
   lastMessage: ChatMessage | null;
@@ -30,19 +31,8 @@ export function ChatPreview({ title = DEFAULT_TITLE, lastMessage, onClick }: Cha
         </span>
       </div>
       <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-        {lastMessage ? formatTime(lastMessage.ts) : ''}
+        {lastMessage ? formatMessageTime(lastMessage.ts) : ''}
       </span>
     </Component>
   );
-}
-
-function formatTime(ts: number) {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(ts));
-  } catch {
-    return '';
-  }
 }

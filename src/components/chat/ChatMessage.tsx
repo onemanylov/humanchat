@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import type { ChatMessage } from '~/lib/chat/types';
 import { cn } from '~/lib/utils';
+import { formatMessageTime } from '~/lib/utils/date-formatting';
+import { formatDisplayName } from '~/lib/utils/user-formatting';
 import MeshAvatar from './MeshAvatar';
 
 export type ChatMessageRowProps = {
@@ -10,30 +12,6 @@ export type ChatMessageRowProps = {
   isOwn: boolean;
   previousMessage?: ChatMessage | null;
 };
-
-const timeFormatter = new Intl.DateTimeFormat(undefined, {
-  hour: '2-digit',
-  minute: '2-digit',
-});
-
-function formatTimestamp(ts: number) {
-  try {
-    return timeFormatter.format(new Date(ts));
-  } catch {
-    return '';
-  }
-}
-
-function formatDisplayName(message: ChatMessage) {
-  if (message.username && message.username.trim().length > 0) {
-    return message.username.trim();
-  }
-  if (message.wallet) {
-    const wallet = message.wallet;
-    return `${wallet.slice(0, 6)}…${wallet.slice(-4)}`;
-  }
-  return 'Anonymous';
-}
 
 function renderAvatar(message: ChatMessage, isOwn: boolean) {
   const seed = message.wallet || 'anonymous';
@@ -68,7 +46,7 @@ export function ChatMessageRow({
   isOwn,
   previousMessage,
 }: ChatMessageRowProps) {
-  const timestamp = formatTimestamp(message.ts);
+  const timestamp = formatMessageTime(message.ts);
   const isNewBlock =
     !previousMessage || previousMessage.wallet !== message.wallet;
 
